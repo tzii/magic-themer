@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <category title="QA icons" />
+    <item drawable="magic_tile" />
+    <item drawable="settings_tile" />
+    <item drawable="fixture_tile" />
+    <category title="Unmapped alternatives" />
+    <item drawable="alternative_tile" />
+    <item drawable="raster_tile" />
+    <item drawable="play_store_alternative" />
+</resources>

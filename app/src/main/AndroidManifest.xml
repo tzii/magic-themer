@@ -1,0 +1,78 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <queries>
+    <intent>
+      <action android:name="android.intent.action.MAIN" />
+      <category android:name="android.intent.category.LAUNCHER" />
+    </intent>
+    <intent>
+      <action android:name="org.adw.launcher.THEMES" />
+    </intent>
+    <intent>
+      <action android:name="org.adw.ActivityStarter.THEMES" />
+    </intent>
+    <intent>
+      <action android:name="com.novalauncher.THEME" />
+    </intent>
+    <intent>
+      <action android:name="ch.deletescape.lawnchair.ICONPACK" />
+    </intent>
+    <intent>
+      <action android:name="app.lawnchair.icons.THEMED_ICON" />
+    </intent>
+    <intent>
+      <action android:name="com.gau.go.launcherex.theme" />
+    </intent>
+    <intent>
+      <action android:name="com.dlto.atom.launcher.THEME" />
+    </intent>
+    <intent>
+      <action android:name="ginlemon.smartlauncher.THEMES" />
+    </intent>
+    <intent>
+      <action android:name="com.sonymobile.home.ICON_PACK" />
+    </intent>
+    <intent>
+      <action android:name="android.intent.action.MAIN" />
+      <category android:name="com.anddoes.launcher.THEME" />
+    </intent>
+    <intent>
+      <action android:name="android.intent.action.MAIN" />
+      <category android:name="com.gau.go.launcherex.theme" />
+    </intent>
+    <intent>
+      <action android:name="android.intent.action.MAIN" />
+      <category android:name="com.dlto.atom.launcher.THEME" />
+    </intent>
+    <intent>
+      <action android:name="android.intent.action.MAIN" />
+      <category android:name="ginlemon.smartlauncher.THEMES" />
+    </intent>
+    <intent>
+      <action android:name="android.intent.action.MAIN" />
+      <category android:name="com.sonymobile.home.ICON_PACK" />
+    </intent>
+    <intent>
+      <action android:name="android.intent.action.MAIN" />
+      <category android:name="com.teslacoilsw.launcher.THEME" />
+    </intent>
+    <intent>
+      <action android:name="android.intent.action.MAIN" />
+      <category android:name="com.novalauncher.THEME" />
+    </intent>
+    <intent>
+      <action android:name="android.intent.action.MAIN" />
+      <category android:name="com.fede.launcher.THEME_ICONPACK" />
+    </intent>
+    <package android:name="com.hihonor.android.thememanager" />
+    <package android:name="com.huawei.android.thememanager" />
+  </queries>
+  <application android:allowBackup="false" android:icon="@mipmap/ic_launcher" android:label="@string/app_name" android:roundIcon="@mipmap/ic_launcher_round" android:supportsRtl="true" android:theme="@style/Theme.MagicThemer">
+    <activity android:name=".MainActivity" android:exported="true" android:windowSoftInputMode="adjustResize">
+      <intent-filter>
+        <action android:name="android.intent.action.MAIN" />
+        <category android:name="android.intent.category.LAUNCHER" />
+      </intent-filter>
+    </activity>
+  </application>
+</manifest>
