@@ -2,7 +2,15 @@
 
 A free, offline Android prototype that creates icon themes from installed icon packs and edits supported local theme files. Target: **HONOR Magic V5, MagicOS 10.0.0.168 EU**.
 
-The user confirmed that the v0.2 export was absent from HONOR Themes while `chicv6.hnt` from Peafowl worked on this phone. v0.3 corrects the archive profile from that comparison. The repaired file and new exports still need a phone check; APK/emulator checks cannot establish HONOR Themes acceptance.
+The supplied Peafowl `chicv6.hnt` worked on this phone, while exports edited by this app were absent from HONOR Themes. The actual edited files showed that saving rebuilt both ZIP layers and changed metadata and previews. v0.4 preserves untouched archive records, metadata and imported previews. Acceptance of the corrected files still needs a phone check; APK/emulator checks cannot establish HONOR Themes acceptance.
+
+## What v0.4 adds
+
+- Saving a working imported theme without edits produces a byte-identical copy when legacy conversion is off. Metadata edits replace only requested XML values; a blank missing description is not added.
+- Unchanged ZIP members retain their original compressed bytes, headers, attributes and comments. Changed and new members carry complete local CRC/size fields without streaming data descriptors.
+- Editing icons in an imported theme keeps the author's previews. The six additions in the supplied edited `chicv6` are retained in the new personal repair.
+- The minimal legacy conversion also recognizes copies with customized designer credit, and normalizes legacy ZIP headers in both layers.
+- System file-picker saves are read back and checked against the working export's length and SHA-256 before success is reported. The save dialog shows the actual filename and warns about an unexpected extension.
 
 ## What v0.3 adds
 
@@ -34,7 +42,7 @@ No ads, accounts, analytics, network permission, subscriptions or broad storage 
 
 Build the development APK using the instructions below. The output is `app/build/outputs/apk/debug/app-debug.apk`, signed with your local Android debug key. Generated APKs, checksums and personal theme files in `dist/` are not tracked in Git. See [validation](docs/VALIDATION.md) for tests and Android 16 emulator checks.
 
-The local personal repair, `dist/My Magic Icons Fixed.hnt`, combines all 7,404 package icons from the failed export with the supplied working theme's original modules, aliases and remaining artwork. It is not included in this repository. Original author/designer credits are preserved. Apply **Customize → Icons** in HONOR Themes to select its icons; applying the entire theme also uses its existing wallpaper/system modules. No supplied third-party artwork is bundled with the APK.
+Local-only diagnostics are `dist/Chic V6 Header Test.hnt` (the untouched working theme with only its matching titles changed) and `dist/Chic V6 Fixed.hnt` (that working base with the six app-icon additions from the supplied edited file). They are not included in this repository. Original author/designer credits and previews are preserved. Apply **Customize → Icons** in HONOR Themes to select the repaired icons; applying the entire theme also uses the base's wallpaper/system modules. No supplied third-party artwork is bundled with the APK.
 
 1. Install Magic Themer and a compatible icon pack.
 2. Tap **Choose pack**. In **Apps**, use **Needs icon** to find gaps, tap an app and choose a suggested icon or search all artwork. Browse **Pack icons** for alternatives. In **Theme**, leave **Whole icon pack** on, or turn it off for an installed-app-only first test.
@@ -48,11 +56,11 @@ The user applies the theme in HONOR Themes. No public direct-apply API was locat
 
 Tap **Open .hnt** and choose a local file you can legitimately use. The editor supports ordinary ZIP themes containing `description.xml` with `HnTheme` or `HwTheme` metadata and an extensionless `icons` ZIP. Change **Theme name**, **Designer** or **Description**, then replace static package PNG icons using an installed pack. **Save theme copy** proposes a separate `Title-edited.hnt` document; the original selected document is not overwritten.
 
-Selecting a pack does not change an imported theme by itself. Assign individual icons in **Apps**, or tap **Apply whole pack to theme** in **Theme**. This merges the pack and keeps original icons for uncovered apps. **Replace existing icon set** is an explicit option to remove the old static package icons when applying a pack. **Use original** removes an app's custom theme icon; **Reset** restores the imported icon or current pack default.
+Selecting a pack does not change an imported theme by itself. Assign individual icons in **Apps**, or tap **Apply whole pack to theme** in **Theme**. This merges the pack and keeps original icons for uncovered apps. **Replace existing icon set** is an explicit option to remove the old static package icons when applying a pack. **Use original** removes an app's custom theme icon; **Reset** restores the imported icon or current pack default. For a separately identifiable copy in HONOR Themes, change **Theme name** before saving; the proposed `-edited` filename does not change the internal theme title.
 
 Unchanged member contents, including existing wallpaper, font, system and lock-screen modules, are copied through. The editor cannot author those modules or reproduce their proprietary behavior. ZIP compression and edited metadata formatting may change; a saved copy still needs validation in HONOR Themes. Encrypted, signed or other unsupported theme formats are not promised.
 
-To repair an older minimal export, open it, leave **Repair theme compatibility** enabled in **Theme**, then save a copy. This option is restricted to recognizable older Magic Themer files. Other imported themes retain their existing metadata profile.
+To convert an older minimal export, open it, leave **Repair theme compatibility** enabled in **Theme**, then save a copy. This option is restricted to the exact supported minimal legacy layout, including copies with edited designer credit. Other imported themes retain their existing metadata profile. When recovering edits from a rejected rewritten full theme, start with its untouched working original; raw preservation cannot restore packaging already lost in an earlier save.
 
 ## Build
 
@@ -78,9 +86,9 @@ The separate `:qa:iconpack` module is an original synthetic icon pack for emulat
 - Calendars are a snapshot of the current day. Clock hands and launcher-specific monochrome tinting are not dynamic.
 - The gallery combines drawable.xml artwork and mapped icons. Drawables absent from both metadata files are not enumerated automatically.
 - Work profiles and cloned apps need separate investigation. New wallpapers, fonts, lock screens and system UI modules cannot be authored here; imported modules are preserved.
-- Import and export enforce icon, entry and byte limits. Import allows 256 MiB archives, 128 MiB members and 512 MiB aggregate expanded outer/inner data. New rendered icons retain a 64 MiB total PNG budget. Oversized or malformed archives are rejected.
+- Import and export enforce icon, entry and byte limits. Import allows 256 MiB archives, 128 MiB members and 512 MiB aggregate expanded outer/inner data. New rendered icons retain a 64 MiB total PNG budget. Editing supports classic single-disk ZIP framing; ZIP64, encrypted, signed, prefixed or trailing-data archives are rejected when saving. Oversized or malformed archives are rejected.
 - Source research does not establish redistribution rights for third-party artwork. Keep pack-derived themes for your own use unless the creator allows sharing.
 
-Next milestone: verify the repaired file, corrected new export and edited working-theme copy on the V5. Full system and lock-screen authoring requires separate research after that check.
+Next milestone: check the raw-preserving title-only control and repaired six-icon copy on the V5, then a new v0.4 export. Full system and lock-screen authoring requires separate research after that check.
 
 Research, primary sources and assumptions: [RESEARCH.md](docs/RESEARCH.md).

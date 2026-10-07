@@ -8,6 +8,8 @@ import java.io.OutputStream
 import java.util.Base64
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
+import java.time.Instant
+import java.time.ZoneId
 import javax.xml.parsers.DocumentBuilderFactory
 import dev.magicthemer.icons.AppFilterParser
 import org.junit.Assert.assertArrayEquals
@@ -106,7 +108,7 @@ class ThemeArchiveTest {
             while (true) {
                 val entry = zip.nextEntry ?: break
                 assertEquals(ZipEntry.DEFLATED, entry.method)
-                assertEquals(0L, entry.time)
+                assertEquals(1980, Instant.ofEpochMilli(entry.time).atZone(ZoneId.systemDefault()).year)
                 zip.readBytes()
             }
         }

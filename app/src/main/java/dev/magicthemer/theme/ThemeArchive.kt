@@ -3,8 +3,6 @@ package dev.magicthemer.theme
 import java.io.File
 import java.io.OutputStream
 import java.nio.charset.StandardCharsets
-import java.util.zip.ZipEntry
-import java.util.zip.ZipOutputStream
 
 /**
  * Writes an experimental, icon-only HONOR theme. Device acceptance must be
@@ -83,26 +81,23 @@ object ThemeArchive {
         // copy of a whole pack's rendered PNG data in memory.
         val nestedIcons = File.createTempFile("theme-export-icons-", ".zip", tempDirectory)
         try {
-            ZipOutputStream(nestedIcons.outputStream(), StandardCharsets.UTF_8).use { zip ->
-                icons.sortedBy { it.packageName }.forEach { icon ->
-                    put(zip, "${icon.packageName}.png", icon.png)
-                }
+            nestedIcons.outputStream().use { stream ->
+                ThemeZip.create(stream, icons.sortedBy { it.packageName }.associate { icon ->
+                    "${icon.packageName}.png" to ThemeZip.Bytes(icon.png)
+                }, tempDirectory)
             }
             val unlockPreview = iconsPreview ?: preview
             validateCompletedArchive(nestedIcons.length(), totalBytes, description.size, preview?.size ?: 0,
                 iconsPreview?.size ?: 0, unlockPreview?.size ?: 0)
-            ZipOutputStream(output, StandardCharsets.UTF_8).use { zip ->
-                put(zip, "description.xml", description)
-                // An empty lock-screen declaration accompanies the accepted
-                // profile. It contains no proprietary artwork or system module.
-                put(zip, "unlock/theme.xml", "<HWTheme />".toByteArray(StandardCharsets.UTF_8))
-                zip.putNextEntry(ZipEntry("icons").apply { time = 0L })
-                nestedIcons.inputStream().use { it.copyTo(zip, 32 * 1024) }
-                zip.closeEntry()
-                preview?.let { put(zip, "preview/icon_small.jpg", it) }
-                iconsPreview?.let { put(zip, "preview/preview_icons_0.jpg", it) }
-                unlockPreview?.let { put(zip, "preview/preview_unlock_0.jpg", it) }
-            }
+            val members = linkedMapOf<String, ThemeZip.Content>(
+                "description.xml" to ThemeZip.Bytes(description),
+                "unlock/theme.xml" to ThemeZip.Bytes("<HWTheme />".toByteArray(StandardCharsets.UTF_8)),
+                "icons" to ThemeZip.FileContent(nestedIcons),
+            )
+            preview?.let { members["preview/icon_small.jpg"] = ThemeZip.Bytes(it) }
+            iconsPreview?.let { members["preview/preview_icons_0.jpg"] = ThemeZip.Bytes(it) }
+            unlockPreview?.let { members["preview/preview_unlock_0.jpg"] = ThemeZip.Bytes(it) }
+            output.use { ThemeZip.create(it, members, tempDirectory) }
         } finally {
             nestedIcons.delete()
         }
@@ -123,15 +118,6 @@ object ThemeArchive {
         require(rawIconBytes + outerMemberBytes <= ThemeEditor.MAX_EXPANDED_BYTES - innerBytes) {
             "Packed theme data exceeds the 512 MiB import limit; select fewer icons or use smaller previews."
         }
-    }
-
-    private fun put(zip: ZipOutputStream, name: String, bytes: ByteArray) {
-        // DEFLATED matches the authored converter's ordinary ZIP packaging.
-        // A fixed timestamp and sorted icons make repeated exports identical.
-        val entry = ZipEntry(name).apply { time = 0L }
-        zip.putNextEntry(entry)
-        zip.write(bytes)
-        zip.closeEntry()
     }
 
     private fun xmlEscape(value: String): String = buildString {

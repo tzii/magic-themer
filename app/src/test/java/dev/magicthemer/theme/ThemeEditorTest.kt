@@ -94,6 +94,38 @@ class ThemeEditorTest {
         ThemeEditor.close(document)
     }
 
+    @Test fun unchangedSaveAndIdenticalAssignmentsPreserveTheEntireArchive() {
+        val original = theme()
+        val document = ThemeEditor.open(original)
+        assertArrayEquals(original.readBytes(), edit(document))
+        assertArrayEquals(original.readBytes(), edit(document, replacements = mapOf("com.example.first" to png)))
+        ThemeEditor.close(document)
+    }
+
+    @Test fun iconOnlyEditPreservesOriginalXmlWithoutAddingMissingBlankFields() {
+        val description = "<?xml version='1.0' encoding='UTF-8'?>\r\n<HwTheme>\r\n<title>Original</title><designer>Artist</designer><version>12</version>\r\n</HwTheme>\r\n".toByteArray()
+        val document = ThemeEditor.open(theme(description = description))
+        val saved = unzip(edit(document, replacements = mapOf("com.example.first" to replacementPng)))
+        assertArrayEquals(description, saved.getValue("description.xml"))
+        assertArrayEquals(replacementPng, unzip(saved.getValue("icons")).getValue("com.example.first.png"))
+        ThemeEditor.close(document)
+    }
+
+    @Test fun metadataEditsPreserveDeclarationWhitespaceCommentsAndQuotedMarkup() {
+        val description = """<?xml version='1.0' encoding='UTF-8'?>
+<HwTheme><!-- <title>Fake</title> --><title hint='a > b'><![CDATA[Original]]></title>
+<designer>Artist</designer><version>12</version><briefInfo hint='keep' />
+<other><title>Nested title</title></other></HwTheme>
+""".toByteArray()
+        val document = ThemeEditor.open(theme(description = description))
+        val saved = unzip(edit(document, title = "A & <B>", briefInfo = "A\rB")).getValue("description.xml")
+        val expected = description.decodeToString().replace("<![CDATA[Original]]>", "A &amp; &lt;B&gt;")
+            .replace("<briefInfo hint='keep' />", "<briefInfo hint='keep' >A&#13;B</briefInfo>").toByteArray()
+        assertArrayEquals(expected, saved)
+        assertEquals("A\rB", xml(saved).getElementsByTagName("briefInfo").item(0).textContent)
+        ThemeEditor.close(document)
+    }
+
     @Test fun removesOnlyRequestedPackageAndReplaceAllKeepsConfiguration() {
         val document = ThemeEditor.open(theme())
         val removed = unzip(unzip(edit(document, removed = setOf("com.example.first"))).getValue("icons"))
@@ -236,7 +268,7 @@ class ThemeEditorTest {
         ThemeEditor.close(localized)
     }
 
-    @Test fun compatibilityUpgradeRecognizesOnlyMinimalOlderMagicThemerExports() {
+    @Test fun compatibilityUpgradeRecognizesMinimalLegacyExportsWithCustomizedDesigner() {
         val old = """<HnTheme><title>Old export</title><designer>Magic Themer</designer><screen>FHD</screen><version>8.0.0</version><briefInfo/></HnTheme>""".toByteArray()
         val jpeg = byteArrayOf(0xff.toByte(), 0xd8.toByte(), 0xff.toByte(), 0xd9.toByte())
         val original = theme(description = old, iconEntries = mapOf("com.example.first.png" to png), extras = mapOf("preview/preview_icons_0.jpg" to jpeg))
@@ -247,6 +279,8 @@ class ThemeEditorTest {
         assertEquals("HnTheme", ordinary.documentElement.tagName)
         val output = ByteArrayOutputStream().also { ThemeEditor.write(document, it, "Repaired", document.designer, document.briefInfo, emptyMap(), upgradeMinimalProfile = true) }.toByteArray()
         val saved = unzip(output)
+        assertKnownLocalSizes(output)
+        assertKnownLocalSizes(saved.getValue("icons"))
         val xml = xml(saved.getValue("description.xml"))
         assertEquals("HwTheme", xml.documentElement.tagName)
         assertEquals("12", xml.getElementsByTagName("version").item(0).textContent)
@@ -260,8 +294,14 @@ class ThemeEditorTest {
         assertArrayEquals(originalBytes, original.readBytes())
         ThemeEditor.close(document)
 
-        listOf(old.decodeToString().replace("Magic Themer", "Other author").toByteArray(),
-            old.decodeToString().replace("<HnTheme>", "<HnTheme vendor='custom'>").toByteArray(),
+        val customized = ThemeEditor.open(theme(description = old.decodeToString().replace("Magic Themer", "Simo").toByteArray(),
+            iconEntries = mapOf("com.example.first.png" to png), extras = emptyMap()))
+        assertTrue(customized.compatibilityRepairAvailable)
+        val converted = ByteArrayOutputStream().also { ThemeEditor.write(customized, it, customized.title, customized.designer,
+            customized.briefInfo, emptyMap(), upgradeMinimalProfile = true) }.toByteArray()
+        assertEquals("Simo", xml(unzip(converted).getValue("description.xml")).getElementsByTagName("designer").item(0).textContent)
+        ThemeEditor.close(customized)
+        listOf(old.decodeToString().replace("<HnTheme>", "<HnTheme vendor='custom'>").toByteArray(),
             old.decodeToString().replace("8.0.0", "10.0.0").toByteArray()).forEach { metadata ->
             val other = ThemeEditor.open(theme(description = metadata, iconEntries = mapOf("com.example.first.png" to png), extras = emptyMap()))
             assertFalse(other.compatibilityRepairAvailable)
@@ -312,6 +352,9 @@ class ThemeEditorTest {
         val document = ThemeEditor.open(source)
         assertTrue(document.iconEntries.isNotEmpty())
         assertFalse(document.compatibilityRepairAvailable)
+        val untouched = folder.newFile("user-working-theme-untouched.hnt")
+        ThemeEditor.write(document, untouched.outputStream(), document.title, document.designer, document.briefInfo, emptyMap())
+        assertArrayEquals(fileDigest(source), fileDigest(untouched))
         val saved = folder.newFile("user-working-theme-edited.hnt")
         ThemeEditor.write(document, saved.outputStream(), "Compatibility round trip", document.designer, document.briefInfo, emptyMap())
         ZipFile(source).use { before -> ZipFile(saved).use { after ->
@@ -327,6 +370,65 @@ class ThemeEditorTest {
         assertEquals(document.iconEntries.keys, reopened.iconEntries.keys)
         ThemeEditor.close(reopened)
         ThemeEditor.close(document)
+    }
+
+    /** Optional personal diagnostics generated by the same writer used in the APK. */
+    @Test fun optionalPhoneEditedThemeRepairsAdditionsUsingUntouchedWorkingBase() {
+        val basePath = System.getenv("MAGIC_THEMER_COMPATIBILITY_THEME")
+        val editedPath = System.getenv("MAGIC_THEMER_EDITED_THEME")
+        assumeTrue("Set both local theme paths for the phone-export comparison.", !basePath.isNullOrBlank() && !editedPath.isNullOrBlank())
+        val base = File(requireNotNull(basePath))
+        val edited = File(requireNotNull(editedPath))
+        val beforeHashes = listOf(fileDigest(base), fileDigest(edited))
+        val source = folder.newFile("phone-base.hnt").also { base.inputStream().use { input -> it.outputStream().use { input.copyTo(it) } } }
+        val incoming = folder.newFile("phone-edited.hnt").also { edited.inputStream().use { input -> it.outputStream().use { input.copyTo(it) } } }
+        val document = ThemeEditor.open(source)
+        val edits = ThemeEditor.open(incoming)
+        val replacements = linkedMapOf<String, ByteArray>()
+        ZipFile(document.iconsFile).use { original -> ZipFile(edits.iconsFile).use { changed ->
+            edits.iconEntries.forEach { (pkg, name) ->
+                val bytes = changed.getInputStream(changed.getEntry(name)).use { it.readBytes() }
+                val old = document.iconEntries[pkg]?.let { original.getInputStream(original.getEntry(it)).use { stream -> stream.readBytes() } }
+                if (old == null || !bytes.contentEquals(old)) replacements[pkg] = bytes
+            }
+        } }
+        val headerTest = folder.newFile("Chic V6 Header Test.hnt")
+        val fixed = folder.newFile("Chic V6 Fixed.hnt")
+        ThemeEditor.write(document, headerTest.outputStream(), "Chic V6 Header Test", document.designer, document.briefInfo, emptyMap())
+        ThemeEditor.write(document, fixed.outputStream(), "Chic V6 Fixed", document.designer, document.briefInfo, replacements)
+        ZipFile(base).use { original -> ZipFile(fixed).use { output ->
+            original.entries().asSequence().filter { it.name !in setOf("description.xml", "icons") }.forEach { entry ->
+                assertArrayEquals(entry.name, memberDigest(original, entry.name), memberDigest(output, entry.name))
+            }
+            assertFalse(output.getInputStream(output.getEntry("description.xml")).use { it.readBytes().decodeToString() }.contains("briefInfo"))
+        } }
+        val repaired = ThemeEditor.open(fixed)
+        assertEquals(document.iconEntries.keys + edits.iconEntries.keys, repaired.iconEntries.keys)
+        replacements.forEach { (pkg, bytes) -> assertArrayEquals(bytes, ThemeEditor.readIcon(repaired, pkg)) }
+        ThemeEditor.close(repaired)
+        ThemeEditor.close(edits)
+        ThemeEditor.close(document)
+        assertArrayEquals(beforeHashes[0], fileDigest(base)); assertArrayEquals(beforeHashes[1], fileDigest(edited))
+        System.getenv("MAGIC_THEMER_DIAGNOSTIC_OUTPUT")?.takeIf { it.isNotBlank() }?.let { directory ->
+            val output = File(directory).apply { mkdirs() }
+            for (file in listOf(headerTest, fixed)) file.copyTo(File(output, file.name), overwrite = true)
+        }
+    }
+
+    private fun fileDigest(file: File): ByteArray = MessageDigest.getInstance("SHA-256").also { digest ->
+        file.inputStream().use { input -> val buffer = ByteArray(32 * 1024); while (true) { val count = input.read(buffer); if (count < 0) break; digest.update(buffer, 0, count) } }
+    }.digest()
+
+    private fun assertKnownLocalSizes(bytes: ByteArray) {
+        ZipInputStream(ByteArrayInputStream(bytes)).use { zip ->
+            while (true) {
+                val entry = zip.nextEntry ?: break
+                assertTrue("Local size is missing: ${entry.name}", entry.size >= 0)
+                assertTrue("Local packed size is missing: ${entry.name}", entry.compressedSize >= 0)
+                assertTrue("Local CRC is missing: ${entry.name}", entry.crc >= 0)
+                zip.readBytes()
+            }
+        }
     }
 
     private fun memberDigest(zip: ZipFile, name: String): ByteArray = MessageDigest.getInstance("SHA-256").also { hash ->

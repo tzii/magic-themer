@@ -1,82 +1,62 @@
 # Validation record
 
-Completed 7 October 2026 for **0.3.0**, application ID `dev.magicthemer`. This is a debug-signed prototype. The user confirmed that v0.2 was absent from HONOR Themes and the supplied Peafowl theme worked on **MagicOS 10.0.0.168 EU**. Acceptance of the repaired file and new v0.3 exports on the physical V5 remains unverified.
+Completed 7 October 2026 for **0.4.0**, application ID `dev.magicthemer`. This debug-signed prototype targets **Magic V5 / MagicOS 10.0.0.168 EU**. The supplied untouched Peafowl theme worked on the phone; two actual app-edited outputs did not appear. Acceptance of v0.4 controls and exports remains a phone test.
 
-The earlier [v0.2 validation record](VALIDATION-0.2.md) is retained as history.
+Earlier records: [v0.3](VALIDATION-0.3.md), [v0.2](VALIDATION-0.2.md). APKs, personal themes and generated evidence in `dist/` and `qa/output/` are local-only and ignored by Git. No supplied artwork is included in the APK or source repository.
 
-The `dist/` APKs, checksums and personal repaired themes described here are local development artifacts. They are ignored by Git and are not included in a repository clone. Supplied theme files and generated QA evidence are also not tracked; build fresh APKs and provide your own local theme inputs when reproducing these checks.
+## Build checks
 
-## Build and artifact
-
-Toolchain: Android Studio JBR 25.0.2, Gradle 9.4.0, AGP 9.1.0, Kotlin runtime override 2.3.21, compile/target SDK 36, minimum SDK 26, Material Components 1.13.0 and RecyclerView 1.4.0.
+The toolchain remains Android Studio JBR 25.0.2, Gradle 9.4.0, AGP 9.1.0, Kotlin runtime override 2.3.21, SDK 36, minimum SDK 26, Material Components 1.13.0 and RecyclerView 1.4.0.
 
 ```powershell
 $env:JAVA_HOME = 'C:\Program Files\Android\Android Studio\jbr'
 $env:ANDROID_HOME = "$env:LOCALAPPDATA\Android\Sdk"
-$env:MAGIC_THEMER_COMPATIBILITY_THEME = 'C:\Users\simon\AppData\Local\Temp\chicv6.hnt'
-.\gradlew.bat :app:assembleDebug :app:testDebugUnitTest :app:lintDebug :qa:iconpack:assembleDebug --offline --console=plain
+$env:MAGIC_THEMER_COMPATIBILITY_THEME = 'C:\Users\simon\AppData\Local\Temp\chicv6 (1).hnt'
+$env:MAGIC_THEMER_EDITED_THEME = 'C:\Users\simon\AppData\Local\Temp\chicv6-edited.hnt'
+$env:MAGIC_THEMER_DIAGNOSTIC_OUTPUT = "$PWD\dist"
+.\gradlew.bat :app:assembleDebug :app:testDebugUnitTest :app:lintDebug --offline --console=plain
 ```
 
-- **63 unit tests passed**, zero failures/errors/skips with the supplied-file environment variable: 8 appfilter parser, 6 drawable catalogue, 14 suggestions, 3 mapping selection, 15 archive writer and 15 theme editor tests.
-- The optional supplied-theme test opens and saves the actual working file, checks preserved module digests and reopens the result. Without that environment variable, this one test is skipped.
-- **Lint passed: zero errors, 47 warnings.** Warnings concern English text construction, resource lookup, pinned SDK/dependencies, backup guidance, adapter notifications and optional Kotlin/style improvements. No quality gates were disabled.
-- Final APK signature verified using APK Signature Scheme v2. Package version is `0.3.0`, version code `3`.
-- No internet, broad storage or all-package visibility permission. AndroidX declares/uses the private signature-protected `dev.magicthemer.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION`.
+- **73 JVM tests passed**, zero failures/errors/skips with both supplied-file variables: 8 appfilter, 6 catalogue, 14 suggestions, 3 mapping selection, 15 new-theme writer, 19 editor and 8 raw ZIP tests.
+- The two optional supplied-file tests are skipped when their inputs are not provided. They require no third-party assets in the repository. The diagnostic-output variable is optional; when present, personal controls are copied from the same writer used by the APK.
+- **Lint: zero errors, 47 warnings.** Existing text/resource lookup, pinned dependency, backup, notification and style warnings remain. No quality gates were disabled.
+- APK version `0.4.0`, version code `4`; APK Signature Scheme v2 verifies.
+- The only declared permission is AndroidX's private signature-protected `dev.magicthemer.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION`; no internet, broad storage or all-package permission.
 
-Artifact: `dist/Magic-Themer-0.3.0-debug.apk` — **6,612,535 bytes**.
+APK: `dist/Magic-Themer-0.4.0-debug.apk`, **6,695,340 bytes**. SHA-256: `ca2f68cf4ce44041c542ffd816230c17d2d45d16c475241752ba6221b817adcf`.
 
-SHA-256: `438288dbb0a5109d04a125a208bfecc30278c2713224a0fe1e56bebecf2dad03`. Older APKs and all release checksums remain in `dist/`.
+## Actual phone exports and causal limits
 
-## Supplied archive comparison and personal repair
+The newly supplied `chicv6 (1).hnt` is byte-identical to the earlier working base: SHA-256 `1c75536b8b96cd62a59c805a415c9394ef616f2390fa274c22780cda82af37dd`.
 
-The rejected file has `HnTheme` version `8.0.0`, four outer entries and 7,404 package icons. The working file has `HwTheme` version `12`, 143 outer entries, an empty unlock declaration, three 720×1280 previews and 7,438 inner entries, including HONOR aliases and dynamic/configuration assets.
+`chicv6-edited.hnt` has SHA-256 `9cacf6712e640f94c23e5d25b555520cc304ddbdc56393d0ffd5eda7ccfd478b`. It preserves outer names/order but converts all 143 records to DEFLATED, streaming descriptors, zero local CRC/sizes and DOS creator metadata without Unix attributes. It adds `<briefInfo/>`, changes two previews and rebuilds the nested archive. All 7,438 original inner contents remain; exactly six package icons were added.
 
-The working file's combined expanded outer/inner data is **169,469,602 bytes**, beyond the previous 128 MiB aggregate limit. Its flat colon aliases also failed the old path validator. v0.3 supports those exact alias names, raises file-backed limits and adopts the working metadata/preview profile for new exports. These comparisons identify concrete differences; they do not prove which field made the old file invisible or that a minimal export will be accepted.
+`ChicIcons-edited.hnt` has SHA-256 `951443bd84ef9a3876ccff0a8c1c9d66bbc4d84af54b089b8a2f68f1a2075632`. It retains the four-entry minimal `HnTheme` 8.0.0 profile with designer `Simo`. The former designer-equals-Magic-Themer rule prevented this customized copy from receiving the legacy conversion option.
 
-`qa/compare_user_themes.py` created `dist/My Magic Icons Fixed.hnt` from the working base. All **7,404** incoming package PNGs match the failed export exactly. **40** remaining inner entries and **141** unrelated outer entries retain their original contents. Title/title-cn change; original author/designer credits remain. Both input SHA-256 values remain unchanged. ZIP CRCs pass.
+These are observed differences, not proof of the HONOR importer's rejection rule. v0.4 raw-copies unrelated local records and compressed payloads; updated records have populated local CRC/sizes without descriptors. No-edit saves of the working original are byte-identical. Metadata patching retains XML formatting and avoids inserting an absent blank field. Working-theme icon edits keep imported preview bytes. Explicit minimal legacy conversion normalizes descriptor framing in both layers while retaining compressed PNG payloads.
 
-Repaired artifact: **81,595,730 bytes**, SHA-256 `5c71e089b6e6e913f9e00899b25584bbfad1741ed9a4c50ed9db445b442185b2`. This is a personal user-data transformation, not artwork bundled in the APK. Apply Customize → Icons; applying the entire file also uses the base's wallpaper/system modules.
+## Personal controls
 
-## Android 16 checks
+Generated and verified through the JVM APK writer, with originals unchanged:
 
-Used the headless `Medium_Phone_API_36.1` emulator, serial `emulator-5556`, and an original synthetic QA icon pack. The fixture includes vectors, a 768px raster, alternatives, one deliberately missing mapped resource and an absent app mapping.
+| File | Bytes | SHA-256 | Preservation |
+| --- | ---: | --- | --- |
+| `dist/Chic V6 Header Test.hnt` | 96,706,696 | `c7f54cabc5706a12629896a2a82a0521f917f260086d14cc70cd43a2ca130553` | Only matching titles change; 142 outer records and the entire inner ZIP remain byte-exact. |
+| `dist/Chic V6 Fixed.hnt` | 96,770,110 | `74f47967149832ba7184fede4b7a808d8d3ab09c60db53c324cb778d5b8fcf8e` | 141 outer records and all 7,438 original inner records remain byte-exact; six new package PNGs are retained, for 7,444 entries. |
 
-Conversion/editor checks completed:
+Both outputs retain original credits, previews, modules, directory methods/attributes and 143 outer entries. All local CRC/size fields match the central directory; neither contains data descriptors. Verification of raw compressed records is stronger than comparing only extracted contents. Local evidence: `qa/output/v4/actual-phone-exports.json`, `actual-icon-changes.json` and `personal-controls-report.json`.
 
-1. Empty state disables export. Pack discovery, compiled metadata, actual thumbnails, searchable artwork and manual selection work.
-2. Whole-pack export includes four package icons, including the absent app; installed-only export includes three. Missing resources are skipped. New metadata is HwTheme 12 with an empty unlock declaration and three verified 720×1280 JPEGs.
-3. Manual assignment survives restart. Edited ordinary themes preserve opaque modules, unknown metadata, dynamic/configuration assets and uncovered icons; the source stays byte-identical.
-4. Explicit pack merging and saving across a screen-size change preserve the session and expected contents. Light portrait and dark wide layouts were visually inspected. Wide mode is a resized emulator, not a physical foldable test.
-5. Needs icon correctly classifies the missing Play Store resource. Choosing a ranked thumbnail reduces the missing count **19 → 18**, adds Customized, persists both assignment/filter across restart and restores the original missing count after Reset.
-6. Suggestion reasons were inspected and adjusted to wrap readably. Index construction runs on the background worker; queries are bounded and never auto-assign.
+## Android runtime checks
 
-The real-file test exposed Android cache eviction on the nearly full emulator: active source/inner files disappeared before save. Active imports, inner ZIPs, staging and pending outputs now use private `files/theme-work`. Migration permits only owned cache files, copy fallbacks are bounded, and cleanup protects active/fresh files. Subsequent checks on the final APK passed:
+The focused emulator driver `qa/packaging_runtime_test.py` passed on Android 16 / API 36.1:
 
-1. **96.7 MB chicv6.hnt** imports and saves edited metadata while preserving all **7,438 inner entries** and **141 unrelated outer entries**. The large save picker survives a screen-size change.
-2. The actual older Magic Themer file imports, displays Repair theme compatibility enabled, and saves HwTheme 12 with new previews/unlock declaration. All **7,404 original PNGs remain identical**.
-3. Both supplied external inputs remain unchanged and no Magic Themer crash entries appear.
-4. A real edit session created by the v0.2 APK migrates during an in-place v0.3 update. Draft metadata survives and the saved copy preserves icons/modules.
-5. A final new whole-pack export stages under private working storage, saves through DocumentsUI and passes ZIP/metadata/PNG content checks.
+- A 96.7 MB no-edit working-theme copy saved through the system document picker is byte-identical to the original. Actual filename, byte count and SHA-256 in the save dialog match the pulled file.
+- Applying the four-mapping synthetic pack to the real working theme retains 141 unrelated outer raw records, every original preview and the unrelated inner records. Modified outer and inner local headers contain correct CRC/sizes without descriptors. No original icon records are removed during merging.
+- A fresh whole-pack export contains all four mappings, including the uninstalled app, with complete local headers in both ZIP layers.
+- The host original and the emulator's imported original remain unchanged. No app crash entries occurred. The verification dialog was inspected in an actual screenshot.
 
-The QA driver was corrected to wait for enabled controls, restore search after restart, reveal offscreen files and handle the older-theme explanation. The running legacy-file test's explanation was dismissed using its observed Close button; archive verification completed normally. The final migration and new-export checks were automatic.
+The first attempt hit a System UI startup ANR and a UI automation collision during recovery. Only named earlier QA documents were cleared to recover emulator space, and the emulator was rebooted. The final run used one UI driver and passed all checks; no application changes or weakened assertions were needed for that rerun.
 
-## Reproduction and limits
+The driver operates only on an emulator, resets this app's data and uses named QA documents. Run with `--adb` and `--working` overrides; its report and screenshots are ignored under `qa/output/v4/`.
 
-After building both APKs and starting the emulator:
-
-```powershell
-python qa/smoke_test.py --serial emulator-5556
-python qa/rotation_test.py --serial emulator-5556
-python qa/missing_apps_test.py --serial emulator-5556
-python qa/user_theme_runtime_test.py --serial emulator-5556
-python qa/migration_test.py --serial emulator-5556
-python qa/new_export_test.py --serial emulator-5556
-```
-
-Use `--adb` for an explicit ADB path. The drivers operate only on emulator serials, reset this app/fixture or named QA documents, and keep local evidence under ignored `qa/output/v3/`: screenshots, exported archives, comparison/runtime/migration reports and UI dumps. The real-file driver requires the user's supplied files at its default paths, or `--working` and `--failed` overrides. The migration check uses the retained v0.2 APK and the smoke test's QA fixture output.
-
-The optional local repair script also accepts `--working` and `--failed`, with `--output` and `--report-dir` to select separate destinations. For example: `python qa/compare_user_themes.py --working path/to/working.hnt --failed path/to/export.hnt --output qa/output/local/repaired.hnt --report-dir qa/output/local`. It creates destination directories, preserves both inputs and rejects destinations that would overwrite either input. The recorded personal repair is not distributed with the source repository.
-
-Not established: HONOR Themes listing/application of repaired or new v0.3 files on the physical V5; minimal-profile acceptance without full modules; encrypted/signed themes; production signing/distribution; broad OEM, work-profile and cloned-app behavior; fallback composition or live dynamic icons. Needs icon describes pending static theme coverage, not a scan of the device's currently applied theme.
-
-Use [DEVICE_TESTING.md](DEVICE_TESTING.md) for the phone check, comparing the repaired working-base file with a new minimal export.
+HONOR Themes discovery, actual launcher icon changes on the physical V5, work profiles/clones, proprietary theme modules and production signing remain outside these checks. See [device testing](DEVICE_TESTING.md) for the title-only versus six-icon comparison.

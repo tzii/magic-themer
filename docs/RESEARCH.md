@@ -82,6 +82,12 @@ The scaffold uses the installed SDK 36, Gradle 9.4.0 and AGP 9.1.0. v0.2 uses na
 
 Relevant build references: [AGP 9.1 compatibility](https://developer.android.com/build/releases/agp-9-1-0-release-notes), [built-in Kotlin](https://developer.android.com/build/migrate-to-built-in-kotlin), [KGP runtime override](https://developer.android.com/build/releases/agp-9-0-0-release-notes#runtime_dependency_on_kotlin_gradle_plugin), [JetBrains tested matrix](https://kotlinlang.org/docs/gradle-configure-project.html), [Android 16 SDK setup](https://developer.android.com/about/versions/16/setup-sdk), [Gradle compatibility](https://docs.gradle.org/9.4.0/userguide/compatibility.html).
 
+## 7 October follow-up: actual failed edited files
+
+The new untouched `chicv6 (1).hnt` has the same SHA-256 as the earlier working file. Its 140 file entries use UTF-8 flags `0x0806`, complete local CRC/size fields and Unix attributes; three directory entries are STORED. The actual app-edited `chicv6-edited.hnt` has the same 143 outer names, but all are DEFLATED with flags `0x0808`, zero local CRC/sizes, data descriptors and missing Unix attributes. It also replaces two previews, adds an empty `briefInfo` and rewrites the nested ZIP. The artwork comparison finds six added package PNGs and no changed or removed original inner contents. `ChicIcons-edited.hnt` retains the older four-entry `HnTheme` 8.0.0 profile with designer `Simo`, which exposed a separate overly strict repair-recognition condition.
+
+The [PKWARE ZIP specification](https://pkware.cachefly.net/webdocs/casestudies/APPNOTE.TXT) defines local and central headers and optional data descriptors. Both layouts are valid ordinary ZIP representations; the hypothesis that HONOR's importer rejects the app's streaming framing remains an inference from these files, not a documented HONOR requirement. v0.4 therefore preserves original compressed records and writes complete local headers for changed entries, with a title-only control and a six-addition repair to test separately on the phone. Existing nonempty XML formatting and untouched imported previews are retained. The actual edited full theme also keeps the internal title `chicv6`; an `-edited` filename does not create a distinct internal name. Both controls use unique internal titles, but HONOR's duplicate-title handling is unverified.
+
 ## Scope after the device test
 
 1. Confirm `.hnt` or `.hwt` acceptance, listing, persistence after reboot and actual icon changes on both V5 displays.

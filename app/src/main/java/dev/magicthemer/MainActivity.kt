@@ -67,6 +67,8 @@ import dev.magicthemer.ui.VisualAdapter
 import dev.magicthemer.ui.VisualItem
 import java.io.ByteArrayOutputStream
 import java.io.File
+import java.io.InputStream
+import java.security.MessageDigest
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
 import org.json.JSONArray
@@ -264,7 +266,7 @@ class MainActivity : AppCompatActivity() {
             setOnCheckedChangeListener { _, _ -> if (ready) persist() }
         }
         themePage.addView(repairCompatibility, LinearLayout.LayoutParams(-1, dp(56)))
-        repairNote = label("This file was created by an earlier Magic Themer version. Rebuild its package metadata and previews to match the working HONOR theme format; your icon choices are preserved.", 13f, muted = true)
+        repairNote = label("Convert this minimal legacy theme to the experimental HONOR profile; your icons and designer credit are preserved.", 13f, muted = true)
         themePage.addView(repairNote)
         wholePack = MaterialSwitch(this).apply {
             text = "Whole icon pack"
@@ -805,19 +807,19 @@ class MainActivity : AppCompatActivity() {
                         require(png.size <= ThemeArchive.MAX_ICON_BYTES) { "An icon exceeds 256 KiB." }
                         bytes += png.size; require(bytes <= ThemeArchive.MAX_TOTAL_ICON_BYTES) { "Rendered icons exceed 64 MiB. Turn Whole icon pack off." }
                         replacements[candidate.mapping.packageName] = png
-                        if (previewIcons.size < 12) previewIcons += Bitmap.createScaledBitmap(bitmap, 80, 80, true)
+                        if ((source == null || repair) && previewIcons.size < 12) previewIcons += Bitmap.createScaledBitmap(bitmap, 80, 80, true)
                     } finally { bitmap.recycle() }
                     if (index % 20 == 0) ui { status.text = "Rendering ${index + 1} / ${candidates.size} app icons…" }
                 }
                 if (candidates.isNotEmpty() && (source == null || replaceAll)) require(replacements.isNotEmpty()) { "None of the selected icons could be read. Try another icon pack." }
-                val iconChanges = replacements.isNotEmpty() || removed.isNotEmpty() || replaceAll
-                if (source != null && !replaceAll && (iconChanges || repair) && previewIcons.size < 12) {
+                if (source != null && !replaceAll && repair && previewIcons.size < 12) {
                     source.iconEntries.keys.filter { it !in replacements && it !in removed }.take(12 - previewIcons.size).forEach { pkg ->
                         ThemeEditor.readIcon(source, pkg)?.let { png -> decodeThemePng(png, 80)?.let(previewIcons::add) }
                     }
                 }
-                val preview = if (source == null || iconChanges || repair) createPreview(title, previewIcons, 720, 1280) else null
-                val iconsPreview = if (source == null || iconChanges || repair) createPreview(title, previewIcons, 720, 1280) else null
+                // Keep an imported working theme's authored previews intact.
+                val preview = if (source == null || repair) createPreview(title, previewIcons, 720, 1280) else null
+                val iconsPreview = if (source == null || repair) createPreview(title, previewIcons, 720, 1280) else null
                 output.outputStream().use { stream ->
                     if (source == null) ThemeArchive.write(
                         stream, title, sourceLabel, replacements.map { ThemeIcon(it.key, it.value) }, format,
@@ -890,20 +892,64 @@ class MainActivity : AppCompatActivity() {
         }
         setBusy(true, "Saving new theme file…")
         background {
+            val expectedBytes = file.length()
+            var expectedHash = byteArrayOf()
+            var verifiedName: String? = null
             try {
+                require(expectedBytes > 0) { "The working export is empty. Save your theme again." }
+                expectedHash = file.inputStream().use { verifiedHash(it, expectedBytes) }
                 val stream = contentResolver.openOutputStream(uri, "w") ?: error("This location cannot be written.")
-                stream.use { output -> file.inputStream().use { it.copyTo(output, 32 * 1024) } }
+                val writtenBytes = stream.use { output -> file.inputStream().use { it.copyTo(output, 32 * 1024) } }
+                require(writtenBytes == expectedBytes) { "The saved file has an unexpected length." }
+                val savedInput = contentResolver.openInputStream(uri) ?: error("This location does not allow verification of the saved file.")
+                val savedHash = savedInput.use { verifiedHash(it, expectedBytes) }
+                require(MessageDigest.isEqual(expectedHash, savedHash)) { "The saved file differs from the working export." }
+                verifiedName = runCatching {
+                    contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
+                        if (cursor.moveToFirst()) cursor.getString(0) else null
+                    }
+                }.getOrNull()
             } catch (failure: Exception) {
-                runCatching { DocumentsContract.deleteDocument(contentResolver, uri) }; throw failure
+                // This URI was just created by ACTION_CREATE_DOCUMENT; the
+                // imported source and private working export remain untouched.
+                val removed = runCatching { DocumentsContract.deleteDocument(contentResolver, uri) }.getOrDefault(false)
+                val cleanup = if (removed) " The unverified destination was removed." else " The destination could not be verified; remove it before retrying."
+                throw IllegalStateException("Save verification failed: ${failure.message ?: "the saved file could not be read"}. Working export retained; save again.$cleanup", failure)
             }
+            val filename = verifiedName?.takeIf { it.isNotBlank() }
+            val suffix = ".${file.extension}"
+            val filenameWarning = when {
+                filename == null -> "The provider did not report the filename. Check that the saved name ends in $suffix."
+                !filename.endsWith(suffix, ignoreCase = true) -> "Warning: the provider saved an unexpected extension. Rename $filename to end in $suffix before opening HONOR Themes."
+                else -> ""
+            }
+            val hashLabel = expectedHash.joinToString("") { byte -> "%02x".format(byte.toInt() and 0xff) }
+            val verifiedReport = "$pendingReport\n\nFile: ${filename ?: "name unavailable"}\n$expectedBytes bytes verified\nSHA-256: $hashLabel" +
+                if (filenameWarning.isBlank()) "" else "\n\n$filenameWarning"
             ui {
                 file.delete(); pendingExport = null; persist()
-                setBusy(false, "$pendingReport Open HONOR Themes to apply it.")
+                setBusy(false, "$pendingReport Verified ${filename ?: "saved file"} ($expectedBytes bytes).")
                 MaterialAlertDialogBuilder(this).setTitle("Theme saved")
-                    .setMessage("$pendingReport\n\nSave or copy it to internal storage / HONOR / Themes, then open HONOR Themes → Me → My downloads → Customize → Icons.")
+                    .setMessage("$verifiedReport\n\nSave or copy it to internal storage / HONOR / Themes, then open HONOR Themes → Me → My downloads → Customize → Icons. File verification checks the saved bytes; discovery and compatibility still require checking on your phone.")
                     .setPositiveButton("Open Themes") { _, _ -> openThemes() }.setNegativeButton("Done", null).show()
             }
         }
+    }
+
+    /** Read at most the known working export's size, rejecting extra/missing bytes. */
+    private fun verifiedHash(input: InputStream, expectedBytes: Long): ByteArray {
+        val digest = MessageDigest.getInstance("SHA-256")
+        val buffer = ByteArray(32 * 1024)
+        var total = 0L
+        while (true) {
+            if (Thread.currentThread().isInterrupted) throw InterruptedException()
+            val count = input.read(buffer); if (count < 0) break
+            total += count
+            require(total <= expectedBytes) { "The saved file is longer than expected." }
+            digest.update(buffer, 0, count)
+        }
+        require(total == expectedBytes) { "The saved file is shorter than expected ($total of $expectedBytes bytes)." }
+        return digest.digest()
     }
 
     private fun renderThumbnail(key: String, size: Int): Bitmap? {
@@ -961,7 +1007,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun showGuide() {
         MaterialAlertDialogBuilder(this).setTitle("Apply your theme").setMessage(
-            "1. Save or copy the exported file to internal storage / HONOR / Themes.\n\n2. Open HONOR Themes → Me → My downloads.\n\n3. Choose Customize → Icons and select your theme. Menu labels can vary by region.\n\nNew exports follow the metadata and preview layout of your working HONOR theme. Applying the repaired files on MagicOS 10.0.0.168 EU still needs phone verification.\n\nImported ordinary ZIP themes are saved as a new copy. Static package PNGs and title, designer, and description can be edited; other modules are preserved. Selecting a pack does not alter an imported theme until you apply the pack or assign an icon. Earlier Magic Themer exports can use Repair theme compatibility when saving a copy.\n\nUse Needs icon to find apps without usable artwork. Suggested icons are local name and app matches: review and tap to assign them.\n\nUse exports personally; artwork remains owned by its creator.",
+            "1. Save or copy the exported file to internal storage / HONOR / Themes.\n\n2. Open HONOR Themes → Me → My downloads.\n\n3. Choose Customize → Icons and select your theme. Menu labels can vary by region.\n\nNew exports follow an experimental profile based on a working HONOR theme. Applying exported or converted files on MagicOS 10.0.0.168 EU still needs phone verification.\n\nImported ordinary ZIP themes are saved as a new copy. Static package PNGs and title, designer, and description can be edited; other modules and authored previews are preserved. Selecting a pack does not alter an imported theme until you apply the pack or assign an icon. Minimal legacy icon themes can use Repair theme compatibility when saving a copy; icons and designer credit are preserved.\n\nUse Needs icon to find apps without usable artwork. Suggested icons are local name and app matches: review and tap to assign them.\n\nUse exports personally; artwork remains owned by its creator.",
         ).setPositiveButton("Open Themes") { _, _ -> openThemes() }.setNegativeButton("Close", null).show()
     }
 
@@ -1068,7 +1114,8 @@ class MainActivity : AppCompatActivity() {
         val cutoff = System.currentTimeMillis() - 24L * 60 * 60 * 1000
         themeWorkDir.listFiles()?.filter { file -> file.isFile && file.lastModified() in 1 until cutoff && file.absoluteFile !in keep && (
             isImportName(file.name) || isExportName(file.name) ||
-                (file.name.endsWith(".zip") && listOf("theme-icons-", "theme-edited-", "theme-export-icons-").any { prefix -> file.name.startsWith(prefix) })
+                (file.name.endsWith(".zip") && listOf("theme-icons-", "theme-edited-", "theme-export-icons-").any { prefix -> file.name.startsWith(prefix) }) ||
+                (file.name.startsWith("theme-zip-payload-") && file.name.endsWith(".tmp"))
             ) }?.forEach { it.delete() }
     }
 

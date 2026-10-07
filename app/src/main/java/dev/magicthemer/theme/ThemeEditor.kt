@@ -1,9 +1,7 @@
 package dev.magicthemer.theme
 
-import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.File
-import java.io.InputStream
 import java.io.OutputStream
 import java.io.StringReader
 import java.nio.ByteBuffer
@@ -13,7 +11,6 @@ import java.security.MessageDigest
 import java.util.zip.CRC32
 import java.util.zip.ZipEntry
 import java.util.zip.ZipFile
-import java.util.zip.ZipOutputStream
 import javax.xml.XMLConstants
 import javax.xml.parsers.DocumentBuilderFactory
 import javax.xml.parsers.SAXParserFactory
@@ -96,7 +93,7 @@ object ThemeEditor {
             val warnings = buildList {
                 if (mappedPaths.isEmpty()) add("No static package PNG icons were found; dynamic icons and configuration are preserved.")
                 if (mappedPaths.values.any { it.size > 1 }) add("Some packages have several icon paths; replacements update each matching path.")
-                if (repairable) add("This older Magic Themer export can be upgraded to the MagicOS 10 compatibility profile.")
+                if (repairable) add("This minimal legacy theme can be converted to the experimental HONOR compatibility profile.")
             }
             return ThemeDocument(
                 file.absoluteFile, metadataText(xml, "title"), metadataText(xml, "designer"),
@@ -145,7 +142,7 @@ object ThemeEditor {
         }
         removedPackages.forEach(::checkPackage)
         require(replacements.keys.intersect(removedPackages).isEmpty()) { "An icon cannot be replaced and removed at the same time." }
-        require(!upgradeMinimalProfile || document.compatibilityRepairAvailable) { "Only older minimal Magic Themer exports can use this compatibility upgrade." }
+        require(!upgradeMinimalProfile || document.compatibilityRepairAvailable) { "Only the supported minimal legacy profile can use this compatibility conversion." }
         listOfNotNull(preview, iconsPreview).forEach { jpeg ->
             require(jpeg.size in 3..MAX_PREVIEW_BYTES && jpeg[0] == 0xff.toByte() && jpeg[1] == 0xd8.toByte() && jpeg[2] == 0xff.toByte()) {
                 "Preview must be a JPEG of at most 4 MiB."
@@ -154,23 +151,34 @@ object ThemeEditor {
         require(digest(document.sourceFile).contentEquals(document.sourceDigest)) { "Source theme changed; import it again." }
         require(digest(document.iconsFile).contentEquals(document.iconsDigest)) { "Working icons changed; import the theme again." }
 
-        val editedIcons = File.createTempFile("theme-edited-", ".zip", document.sourceFile.parentFile)
+        val iconChanges = replacements.isNotEmpty() || removedPackages.isNotEmpty() || replaceAllIcons || upgradeMinimalProfile
+        val editedIcons = if (iconChanges) File.createTempFile("theme-edited-", ".zip", document.sourceFile.parentFile) else null
         try {
-            val innerExpandedBytes = rewriteIcons(document, editedIcons, replacements, removedPackages, replaceAllIcons)
+            val innerExpandedBytes = if (editedIcons != null) rewriteIcons(document, editedIcons, replacements, removedPackages, replaceAllIcons, upgradeMinimalProfile)
+                else ZipFile(document.iconsFile, StandardCharsets.UTF_8).use { checkedEntries(it).sumOf { entry -> entry.size } }
             ZipFile(document.sourceFile, StandardCharsets.UTF_8).use { source ->
                 val entries = checkedEntries(source)
                 val originalXml = ByteArrayOutputStream().also {
                     readEntry(source, source.getEntry("description.xml"), Budget(), it, MAX_METADATA_BYTES.toLong())
                 }.toByteArray()
                 val xml = parseMetadata(originalXml)
+                val metadataChanges = linkedMapOf<String, String>()
                 val previousTitle = metadataText(xml, "title")
-                if (metadataText(xml, "title-cn") == previousTitle) updateMetadata(xml, "title-cn", title)
-                updateMetadata(xml, "title", title)
-                updateMetadata(xml, "designer", designer)
-                updateMetadata(xml, "briefInfo", briefInfo, "briefinfo")
-                if (upgradeMinimalProfile) upgradeMetadataProfile(xml, title, designer)
-                val newXml = serializeMetadata(xml)
-                val changed = linkedMapOf<String, ByteArray>("description.xml" to newXml)
+                if (title != previousTitle && metadataElement(xml, "title-cn")?.textContent == previousTitle) metadataChanges["title-cn"] = title
+                if (title != previousTitle) metadataChanges["title"] = title
+                if (designer != metadataText(xml, "designer")) metadataChanges["designer"] = designer
+                if (briefInfo != metadataText(xml, "briefInfo", "briefinfo")) metadataChanges[metadataElement(xml, "briefInfo", "briefinfo")?.tagName ?: "briefInfo"] = briefInfo
+                val newXml = if (upgradeMinimalProfile) {
+                    metadataChanges.forEach { (name, value) -> updateMetadata(xml, name, value) }
+                    upgradeMetadataProfile(xml, title, designer)
+                    serializeMetadata(xml)
+                } else ThemeMetadata.patch(originalXml, metadataChanges).also { bytes ->
+                    require(bytes.size <= MAX_METADATA_BYTES) { "Edited metadata exceeds 1 MiB." }
+                    val checked = parseMetadata(bytes)
+                    require(metadataChanges.all { (name, value) -> metadataText(checked, name) == value }) { "Edited metadata could not be preserved safely." }
+                }
+                val changed = linkedMapOf<String, ByteArray>()
+                if (!newXml.contentEquals(originalXml)) changed["description.xml"] = newXml
                 preview?.let { changed["preview/icon_small.jpg"] = it }
                 iconsPreview?.let { changed["preview/preview_icons_0.jpg"] = it }
                 if (upgradeMinimalProfile) {
@@ -185,64 +193,56 @@ object ThemeEditor {
                     unlockPreview?.let { changed["preview/preview_unlock_0.jpg"] = it }
                 }
                 // Validate the completed output's expanded size before touching the destination.
-                var outputBytes = editedIcons.length()
+                var outputBytes = (editedIcons ?: document.iconsFile).length()
                 entries.filter { it.name != "icons" }.forEach { outputBytes += changed[it.name]?.size?.toLong() ?: it.size }
                 changed.filterKeys { name -> entries.none { it.name == name } }.values.forEach { outputBytes += it.size }
                 require(outputBytes <= MAX_EXPANDED_BYTES - innerExpandedBytes) { "Edited theme data exceeds 512 MiB." }
                 require(entries.size + changed.keys.count { name -> entries.none { it.name == name } } <= MAX_ENTRIES) { "Edited theme has too many entries." }
 
-                ZipOutputStream(output, StandardCharsets.UTF_8).use { destination ->
-                    entries.forEach { entry ->
-                        when {
-                            entry.name == "icons" -> put(destination, entry.name, editedIcons.inputStream(), entry)
-                            changed.containsKey(entry.name) -> put(destination, entry.name, ByteArrayInputStream(requireNotNull(changed.remove(entry.name))), entry)
-                            else -> put(destination, entry.name, source.getInputStream(entry), entry)
-                        }
-                    }
-                    changed.forEach { (name, bytes) -> put(destination, name, ByteArrayInputStream(bytes)) }
-                }
+                val changedMembers = linkedMapOf<String, ThemeZip.Content>()
+                changed.forEach { (name, bytes) -> changedMembers[name] = ThemeZip.Bytes(bytes) }
+                editedIcons?.takeUnless { digest(it).contentEquals(document.iconsDigest) }?.let { changedMembers["icons"] = ThemeZip.FileContent(it) }
+                output.use { ThemeZip.rewrite(document.sourceFile, it, changedMembers, normalizeDescriptors = upgradeMinimalProfile) }
             }
         } finally {
-            editedIcons.delete()
+            editedIcons?.delete()
         }
     }
 
     /** Disposes only the private icons copy made by [open], leaving the source untouched. */
     fun close(document: ThemeDocument) { document.iconsFile.delete() }
 
-    private fun rewriteIcons(document: ThemeDocument, target: File, replacements: Map<String, ByteArray>, removed: Set<String>, replaceAll: Boolean): Long {
+    private fun rewriteIcons(document: ThemeDocument, target: File, replacements: Map<String, ByteArray>, removed: Set<String>, replaceAll: Boolean, normalizeDescriptors: Boolean): Long {
         val budget = Budget()
         ZipFile(document.iconsFile, StandardCharsets.UTF_8).use { source ->
             val entries = checkedEntries(source)
             val handled = hashSetOf<String>()
             var writtenCount = 0
-            ZipOutputStream(target.outputStream(), StandardCharsets.UTF_8).use { destination ->
-                entries.forEach { entry ->
-                    val name = iconPackage(entry.name).takeUnless { entry.isDirectory }
-                    when {
-                        name != null && name in removed -> Unit
-                        name != null && replacements.containsKey(name) -> {
-                            val bytes = replacements.getValue(name)
-                            budget.add(bytes.size.toLong())
-                            put(destination, entry.name, ByteArrayInputStream(bytes), entry)
-                            handled.add(name)
-                            writtenCount++
-                        }
-                        name != null && replaceAll -> Unit
-                        else -> {
-                            budget.add(entry.size)
-                            put(destination, entry.name, source.getInputStream(entry), entry)
-                            writtenCount++
-                        }
+            val changes = linkedMapOf<String, ThemeZip.Content>()
+            val removedEntries = hashSetOf<String>()
+            entries.forEach { entry ->
+                val name = iconPackage(entry.name).takeUnless { entry.isDirectory }
+                when {
+                    name != null && name in removed -> removedEntries.add(entry.name)
+                    name != null && replacements.containsKey(name) -> {
+                        val bytes = replacements.getValue(name)
+                        budget.add(bytes.size.toLong())
+                        val unchanged = entry.size == bytes.size.toLong() && source.getInputStream(entry).use { it.readBytes().contentEquals(bytes) }
+                        if (!unchanged) changes[entry.name] = ThemeZip.Bytes(bytes)
+                        handled.add(name)
+                        writtenCount++
                     }
-                }
-                replacements.toSortedMap().filterKeys { it !in handled }.forEach { (name, bytes) ->
-                    budget.add(bytes.size.toLong())
-                    put(destination, "$name.png", ByteArrayInputStream(bytes))
-                    writtenCount++
+                    name != null && replaceAll -> removedEntries.add(entry.name)
+                    else -> { budget.add(entry.size); writtenCount++ }
                 }
             }
+            replacements.toSortedMap().filterKeys { it !in handled }.forEach { (name, bytes) ->
+                budget.add(bytes.size.toLong())
+                changes["$name.png"] = ThemeZip.Bytes(bytes)
+                writtenCount++
+            }
             require(writtenCount <= MAX_ENTRIES) { "Edited icons module has too many entries." }
+            target.outputStream().use { ThemeZip.rewrite(document.iconsFile, it, changes, removedEntries, normalizeDescriptors) }
         }
         require(target.length() <= MAX_MEMBER_BYTES) { "Edited icons module exceeds 128 MiB." }
         return budget.total
@@ -287,16 +287,6 @@ object ThemeEditor {
         }
         require(bytesRead == entry.size && crc.value == entry.crc) { "Corrupt ZIP member: ${entry.name}" }
         return prefix.toByteArray()
-    }
-
-    private fun put(zip: ZipOutputStream, name: String, input: InputStream, original: ZipEntry? = null) {
-        val entry = ZipEntry(name).apply {
-            time = original?.time?.takeIf { it >= 0 } ?: 0L
-            comment = original?.comment
-        }
-        zip.putNextEntry(entry)
-        input.use { it.copyTo(zip, 32 * 1024) }
-        zip.closeEntry()
     }
 
     private fun iconPackage(path: String): String? {
@@ -363,7 +353,7 @@ object ThemeEditor {
 
     private fun metadataText(document: Document, vararg names: String): String = metadataElement(document, *names)?.textContent.orEmpty()
 
-    /** Recognize only the exact, minimal v0.1/v0.2 profile authored here. */
+    /** Recognize the exact minimal legacy layout, including copies with edited designer credit. */
     private fun isMinimalOldExport(xml: Document, outerNames: Set<String>): Boolean {
         val root = xml.documentElement
         val expected = setOf("title", "designer", "screen", "version", "briefInfo")
@@ -372,7 +362,7 @@ object ThemeEditor {
             children.size == expected.size && children.all { it.attributes.length == 0 && it.childNodes.let { nodes ->
                 (0 until nodes.length).none { nodes.item(it) is Element }
             } } && metadataText(xml, "version") == "8.0.0" && metadataText(xml, "screen") == "FHD" &&
-            metadataText(xml, "designer") == "Magic Themer" && outerNames.all {
+            outerNames.all {
                 it in setOf("description.xml", "icons", "preview/", "preview/icon_small.jpg", "preview/preview_icons_0.jpg")
             }
     }
