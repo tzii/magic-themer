@@ -2,7 +2,21 @@ package dev.magicthemer
 
 import dev.magicthemer.icons.IconMapping
 
-data class ApplicationTarget(val packageName: String, val label: String, val activities: List<String>)
+data class ApplicationTarget(
+    val packageName: String,
+    val label: String,
+    val activities: List<String>,
+    /** Package named by the launcher icon's resource table; null when unknown. */
+    val resourcePackage: String? = null,
+) {
+    /**
+     * HONOR's theme engine registers an icon under the installed package but
+     * resolves it under the icon's resource package. Builds renamed after
+     * compilation, such as DroidDeck's AnTuTu variant, never match, so no theme
+     * file can change their icon.
+     */
+    val honorThemeable: Boolean get() = resourcePackage == null || resourcePackage == packageName
+}
 
 /** HONOR's package-level icon filenames can represent one launcher icon per package. */
 object ThemeMappingSelector {

@@ -2,6 +2,7 @@ package dev.magicthemer
 
 import android.app.Activity
 import android.content.Intent
+import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -22,6 +23,7 @@ import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
+import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import android.widget.ArrayAdapter
 import android.widget.FrameLayout
@@ -31,16 +33,14 @@ import android.widget.ScrollView
 import android.widget.HorizontalScrollView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.app.AppCompatDialog
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.recyclerview.widget.GridLayoutManager
-import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.ConcatAdapter
 import com.google.android.material.appbar.MaterialToolbar
-import com.google.android.material.bottomsheet.BottomSheetBehavior
-import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.chip.Chip
@@ -62,6 +62,8 @@ import dev.magicthemer.theme.ThemeArchive
 import dev.magicthemer.theme.ThemeDocument
 import dev.magicthemer.theme.ThemeEditor
 import dev.magicthemer.theme.ThemeIcon
+import dev.magicthemer.ui.SearchQuery
+import dev.magicthemer.ui.SearchText
 import dev.magicthemer.ui.ThumbnailLoader
 import dev.magicthemer.ui.VisualAdapter
 import dev.magicthemer.ui.VisualItem
@@ -79,7 +81,10 @@ class MainActivity : AppCompatActivity() {
     private data class Choice(val pack: String, val drawable: String)
     private data class DocumentResult(val requestCode: Int, val resultCode: Int, val uri: String?)
     private data class RenderCandidate(val data: PackData, val mapping: IconMapping)
-    private data class AppIconState(val imageKey: String, val status: String, val needsIcon: Boolean = false, val customized: Boolean = false)
+    private data class AppIconState(
+        val imageKey: String, val status: String, val needsIcon: Boolean = false, val customized: Boolean = false,
+        val unthemeable: Boolean = false,
+    )
     private val worker = Executors.newSingleThreadExecutor()
     private val handler = Handler(Looper.getMainLooper())
     private val repository by lazy { IconPackRepository(this) }
@@ -90,6 +95,9 @@ class MainActivity : AppCompatActivity() {
     } }
     private val loadedPacks = ConcurrentHashMap<String, PackData>()
     private val suggestionIndexes = ConcurrentHashMap<String, IconSuggestions>()
+    private val iconSearchIndexes = ConcurrentHashMap<String, Map<String, List<SearchText>>>()
+    /** Main thread only: normalized labels and package names reused across keystrokes. */
+    private val searchTexts = HashMap<String, SearchText>()
     private val failedIcons = ConcurrentHashMap.newKeySet<String>()
     private val thumbnails by lazy { ThumbnailLoader(::renderThumbnail) }
     private var packs = emptyList<IconPack>()
@@ -109,7 +117,10 @@ class MainActivity : AppCompatActivity() {
     private var pendingReport = ""
     private var selectedTab = 0
     private var appFilter = FILTER_ALL
+    private var typing = false
     private lateinit var toolbar: MaterialToolbar
+    private lateinit var sourceArea: LinearLayout
+    private lateinit var footer: LinearLayout
     private lateinit var choosePackButton: MaterialButton
     private lateinit var importButton: MaterialButton
     private lateinit var saveButton: MaterialButton
@@ -128,8 +139,11 @@ class MainActivity : AppCompatActivity() {
     private lateinit var allAppsChip: Chip
     private lateinit var missingAppsChip: Chip
     private lateinit var customizedAppsChip: Chip
+    private lateinit var unthemeableAppsChip: Chip
     private lateinit var iconSummary: TextView
     private lateinit var appAdapter: VisualAdapter
+    private lateinit var appList: RecyclerView
+    private lateinit var iconList: RecyclerView
     private lateinit var iconAdapter: VisualAdapter
     private lateinit var titleInput: TextInputEditText
     private lateinit var designerInput: TextInputEditText
@@ -176,6 +190,7 @@ class MainActivity : AppCompatActivity() {
             val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout())
             val ime = insets.getInsets(WindowInsetsCompat.Type.ime())
             view.setPadding(bars.left, bars.top, bars.right, maxOf(bars.bottom, ime.bottom))
+            setTyping(insets.isVisible(WindowInsetsCompat.Type.ime()))
             insets
         }
         toolbar = MaterialToolbar(this).apply {
@@ -198,7 +213,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
         column.addView(toolbar, LinearLayout.LayoutParams(-1, dp(64)))
-        val sourceArea = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(16), 0, dp(16), dp(8)) }
+        sourceArea = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(16), 0, dp(16), dp(8)) }
         val buttons = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
         choosePackButton = button("Choose pack", tonal = true) { choosePack() }
         importButton = button("Open .hnt", outlined = true) { openThemePicker() }
@@ -226,7 +241,8 @@ class MainActivity : AppCompatActivity() {
         }
         column.addView(tabs, LinearLayout.LayoutParams(-1, dp(48)))
         val body = FrameLayout(this)
-        val appPage = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(16), dp(10), dp(16), 0) }
+        // Pages take focus when a search field clears it, so focus never jumps to another field.
+        val appPage = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(16), dp(10), dp(16), 0); isFocusableInTouchMode = true }
         appSearch = searchField(appPage, "Search apps or packages")
         val filterScroll = HorizontalScrollView(this).apply { isHorizontalScrollBarEnabled = false; overScrollMode = View.OVER_SCROLL_NEVER }
         appFilters = ChipGroup(this).apply { isSingleSelection = true; isSelectionRequired = true; isSingleLine = true; chipSpacingHorizontal = dp(8) }
@@ -237,23 +253,29 @@ class MainActivity : AppCompatActivity() {
         allAppsChip = filterChip("All", FILTER_ALL)
         missingAppsChip = filterChip("Needs icon", FILTER_MISSING)
         customizedAppsChip = filterChip("Customized", FILTER_CUSTOMIZED)
+        unthemeableAppsChip = filterChip("HONOR can't theme", FILTER_UNTHEMEABLE).apply { visibility = View.GONE }
         appFilters.addView(allAppsChip); appFilters.addView(missingAppsChip); appFilters.addView(customizedAppsChip)
+        appFilters.addView(unthemeableAppsChip)
         filterScroll.addView(appFilters)
         appPage.addView(filterScroll, LinearLayout.LayoutParams(-1, dp(48)).apply { topMargin = dp(6) })
         appSummary = label("Finding installed apps…", 12f, muted = true)
         appPage.addView(appSummary, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(8); bottomMargin = dp(4) })
         appAdapter = VisualAdapter(this, thumbnails, false) { item ->
-            if (!busy) targets().firstOrNull { it.packageName == item.key }?.let(::chooseIcon)
+            if (typing) hideKeyboard(appSearch)
+            if (!busy) targets().firstOrNull { it.packageName == item.key }?.let { chooseIcon(it) }
         }
-        appPage.addView(recycler(appAdapter, false), LinearLayout.LayoutParams(-1, 0, 1f))
-        val iconPage = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(12), dp(10), dp(12), 0) }
+        appList = recycler(appAdapter, false)
+        appPage.addView(appList, LinearLayout.LayoutParams(-1, 0, 1f))
+        val iconPage = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(12), dp(10), dp(12), 0); isFocusableInTouchMode = true }
         iconSearch = searchField(iconPage, "Search pack icons")
         iconSummary = label("Choose a pack to browse its artwork", 12f, muted = true)
         iconPage.addView(iconSummary, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(8); bottomMargin = dp(4); marginStart = dp(4) })
         iconAdapter = VisualAdapter(this, thumbnails, true) { item ->
+            if (typing) hideKeyboard(iconSearch)
             if (!busy) packData?.let { previewIcon(it, item.key) }
         }
-        iconPage.addView(recycler(iconAdapter, true), LinearLayout.LayoutParams(-1, 0, 1f))
+        iconList = recycler(iconAdapter, true)
+        iconPage.addView(iconList, LinearLayout.LayoutParams(-1, 0, 1f))
         val themeScroll = ScrollView(this).apply { isFillViewport = true }
         val themePage = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(20), dp(16), dp(20), dp(20)) }
         themeScroll.addView(themePage)
@@ -300,7 +322,7 @@ class MainActivity : AppCompatActivity() {
         pages = listOf(appPage, iconPage, themeScroll)
         pages.forEach { body.addView(it, FrameLayout.LayoutParams(-1, -1)) }
         column.addView(body, LinearLayout.LayoutParams(-1, 0, 1f))
-        val footer = LinearLayout(this).apply {
+        footer = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL; setPadding(dp(16), dp(8), dp(16), dp(8))
             setBackgroundColor(color(com.google.android.material.R.attr.colorSurfaceContainerLow))
         }
@@ -323,7 +345,7 @@ class MainActivity : AppCompatActivity() {
             override fun onTabReselected(tab: TabLayout.Tab) = Unit
         })
         tabs.getTabAt(selectedTab.coerceIn(0, 2))?.select(); showPage()
-        watchSearch(appSearch, ::updateAppList); watchSearch(iconSearch, ::updateIconList)
+        watchSearch(appSearch) { updateAppList(scrollToTop = true) }; watchSearch(iconSearch) { updateIconList(scrollToTop = true) }
         listOf(titleInput, designerInput, briefInput).forEach { input -> watchText(input) { if (ready) persist() } }
         setContentView(frame)
         ViewCompat.requestApplyInsets(frame)
@@ -374,10 +396,23 @@ class MainActivity : AppCompatActivity() {
         val intent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
         val rows = if (Build.VERSION.SDK_INT >= 33) packageManager.queryIntentActivities(intent, PackageManager.ResolveInfoFlags.of(0))
         else { @Suppress("DEPRECATION") packageManager.queryIntentActivities(intent, 0) }
-        return rows.filter { it.activityInfo?.enabled == true && it.activityInfo.applicationInfo.enabled }
+        // The query already omits disabled components. ActivityInfo.enabled is only the
+        // manifest default, so it would hide launcher aliases enabled at runtime, the
+        // usual way apps switch icons, and those apps would never be counted.
+        return rows.filter { it.activityInfo?.applicationInfo?.enabled == true }
             .groupBy { it.activityInfo.packageName }.map { (pkg, matches) ->
-                ApplicationTarget(pkg, matches.first().activityInfo.applicationInfo.loadLabel(packageManager).toString(), matches.map { it.activityInfo.name }.distinct())
+                val info = matches.first().activityInfo
+                ApplicationTarget(pkg, info.applicationInfo.loadLabel(packageManager).toString(), matches.map { it.activityInfo.name }.distinct(),
+                    iconResourcePackage(info))
             }.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.label })
+    }
+
+    /** The package HONOR's theme engine compares with the installed package; null if unknown. */
+    private fun iconResourcePackage(info: ActivityInfo): String? {
+        val icon = info.iconResource
+        // Only the app's own resource table can carry a renamed package.
+        if (icon == 0 || icon ushr 24 != 0x7f) return null
+        return runCatching { packageManager.getResourcesForApplication(info.applicationInfo).getResourcePackageName(icon) }.getOrNull()
     }
 
     private fun refreshPacks() {
@@ -399,6 +434,7 @@ class MainActivity : AppCompatActivity() {
                 failedIcons.clear()
                 loadedPacks.keys.removeIf { it !in refreshed }
                 suggestionIndexes.keys.removeIf { it !in refreshed }
+                iconSearchIndexes.keys.removeIf { it !in refreshed }
                 packs = found; apps = installed; packData = previous?.let(refreshed::get)
                 appliedPack = previousApplied?.let(refreshed::get)
                 choices.entries.removeAll { (_, choice) -> found.none { it.packageName == choice.pack } }
@@ -417,7 +453,7 @@ class MainActivity : AppCompatActivity() {
             return
         }
         visualSheet("Choose icon pack", "Installed packs on this device", false,
-            items = { query -> packs.filter { matches(query, it.label, it.packageName) }.map { VisualItem(it.packageName, it.label, it.packageName, "app:${it.packageName}") } },
+            items = { query -> query.rank(packs) { listOf(searchText(it.label), searchText(it.packageName)) }.map { VisualItem(it.packageName, it.label, it.packageName, "app:${it.packageName}") } },
             onSelect = { item -> packs.firstOrNull { it.packageName == item.key }?.let(::loadPack) })
     }
 
@@ -457,7 +493,15 @@ class MainActivity : AppCompatActivity() {
         return data?.let { ThemeMappingSelector.select(it.mappings, apps, wholePack.isChecked).associateBy { mapping -> mapping.packageName } }.orEmpty()
     }
 
-    private fun appIconState(packageName: String, defaults: Map<String, IconMapping>): AppIconState {
+    private fun appIconState(target: ApplicationTarget, defaults: Map<String, IconMapping>): AppIconState {
+        val state = themedIconState(target.packageName, defaults)
+        if (target.honorThemeable) return state
+        // Whatever the theme contains, HONOR shows this build's own icon.
+        return AppIconState("app:${target.packageName}", if (state.customized) "Customized · HONOR can't theme this build" else "HONOR can't theme this build",
+            customized = state.customized, unthemeable = true)
+    }
+
+    private fun themedIconState(packageName: String, defaults: Map<String, IconMapping>): AppIconState {
         val original = "app:$packageName"
         if (packageName in removedPackages) return AppIconState(original, "Needs icon · using original", needsIcon = true)
         choices[packageName]?.let { choice ->
@@ -491,47 +535,69 @@ class MainActivity : AppCompatActivity() {
         return null
     }
 
-    private fun updateAppList() {
+    private fun updateAppList(scrollToTop: Boolean = false) {
         if (!::appAdapter.isInitialized) return
-        val query = appSearch.text.toString().trim()
+        val query = SearchQuery(appSearch.text.toString())
         val defaults = defaultMappings()
         val all = targets()
-        val states = all.associate { it.packageName to appIconState(it.packageName, defaults) }
+        val states = all.associate { it.packageName to appIconState(it, defaults) }
         val missing = states.values.count { it.needsIcon }
         val customized = states.values.count { it.customized }
+        val unthemeable = states.values.count { it.unthemeable }
         allAppsChip.text = "All (${all.size})"
         missingAppsChip.text = "Needs icon ($missing)"
         customizedAppsChip.text = "Customized ($customized)"
-        appFilters.check(when (appFilter) { FILTER_MISSING -> missingAppsChip.id; FILTER_CUSTOMIZED -> customizedAppsChip.id; else -> allAppsChip.id })
-        val visible = all.filter {
+        unthemeableAppsChip.text = "HONOR can't theme ($unthemeable)"
+        unthemeableAppsChip.visibility = if (unthemeable > 0 || appFilter == FILTER_UNTHEMEABLE) View.VISIBLE else View.GONE
+        appFilters.check(when (appFilter) {
+            FILTER_MISSING -> missingAppsChip.id; FILTER_CUSTOMIZED -> customizedAppsChip.id
+            FILTER_UNTHEMEABLE -> unthemeableAppsChip.id; else -> allAppsChip.id
+        })
+        val filtered = all.filter {
             val state = states.getValue(it.packageName)
-            matches(query, it.label, it.packageName) && when (appFilter) {
+            when (appFilter) {
                 FILTER_MISSING -> state.needsIcon
                 FILTER_CUSTOMIZED -> state.customized
+                FILTER_UNTHEMEABLE -> state.unthemeable
                 else -> true
             }
         }
+        val visible = query.rank(filtered) { listOf(searchText(it.label), searchText(it.packageName)) }
         appAdapter.submit(visible.map { target ->
             val state = states.getValue(target.packageName)
             VisualItem(target.packageName, target.label, target.packageName, "app:${target.packageName}",
-                state.imageKey.takeUnless { it == "app:${target.packageName}" }, state.status, state.needsIcon)
-        })
-        val themed = apps.count { states[it.packageName]?.needsIcon == false }
+                state.imageKey.takeUnless { it == "app:${target.packageName}" }, state.status, state.needsIcon || state.unthemeable)
+        }) { if (scrollToTop) appList.scrollToPosition(0) }
+        val themed = apps.count { states[it.packageName]?.let { state -> !state.needsIcon && !state.unthemeable } == true }
+        val untouchable = if (unthemeable > 0) " · $unthemeable can't be themed by HONOR" else ""
         appSummary.text = when {
-            visible.isEmpty() && query.isBlank() && appFilter == FILTER_MISSING -> "Every app has a theme icon."
+            visible.isEmpty() && query.isBlank && appFilter == FILTER_MISSING -> "Every app has a theme icon.$untouchable"
             visible.isEmpty() -> "No apps match this filter."
-            query.isNotBlank() -> "${visible.size} app(s) match · original → chosen icon"
-            else -> "$themed of ${apps.size} installed apps themed · original → chosen icon"
+            appFilter == FILTER_UNTHEMEABLE -> "Renamed builds: HONOR applies no theme icon to these apps. Tap one for details."
+            !query.isBlank -> "${visible.size} app(s) match · best matches first"
+            else -> "$themed of ${apps.size} installed apps themed$untouchable · original → chosen icon"
         }
     }
 
-    private fun updateIconList() {
+    private fun updateIconList(scrollToTop: Boolean = false) {
         if (!::iconAdapter.isInitialized) return
         val data = packData
-        val query = iconSearch.text.toString().trim()
-        val names = data?.let(::availableIconNames).orEmpty().filter { matches(query, it, friendlyName(it)) }
-        iconAdapter.submit(names.map { VisualItem(it, friendlyName(it), "", "pack:${data!!.pack.packageName}:$it") })
+        val names = data?.let { searchIcons(it, SearchQuery(iconSearch.text.toString())) }.orEmpty()
+        iconAdapter.submit(names.map { VisualItem(it, friendlyName(it), "", "pack:${data!!.pack.packageName}:$it") }) { if (scrollToTop) iconList.scrollToPosition(0) }
         iconSummary.text = if (data == null) "Choose a pack to browse its artwork" else "${names.size} of ${data.drawables.size} icons · alternatives included"
+    }
+
+    /** Ranked artwork; names also match the apps a pack maps to them, so "WhatsApp" finds "wa". */
+    private fun searchIcons(data: PackData, query: SearchQuery): List<String> {
+        val available = availableIconNames(data)
+        if (query.isBlank) return available
+        val index = iconSearchIndexes[data.pack.packageName]
+        return query.rank(available) { name -> index?.get(name) ?: listOf(searchText(name)) }
+    }
+
+    private fun searchText(value: String): SearchText {
+        if (searchTexts.size > MAX_SEARCH_TEXTS) searchTexts.clear()
+        return searchTexts.getOrPut(value) { SearchText.of(value) }
     }
 
     private fun refreshUi(forceRebind: Boolean = false) {
@@ -560,7 +626,17 @@ class MainActivity : AppCompatActivity() {
         updateControls()
     }
 
-    private fun chooseIcon(target: ApplicationTarget) {
+    private fun chooseIcon(target: ApplicationTarget, explained: Boolean = false) {
+        if (!target.honorThemeable && !explained) {
+            MaterialAlertDialogBuilder(this).setTitle("HONOR can't theme ${target.label}")
+                .setMessage("This build is installed as ${target.packageName}, but its icon resources are named ${target.resourcePackage}. " +
+                    "HONOR's theme engine only applies a theme icon when both names match, so no theme can change this icon. " +
+                    "A build whose package matches its resources (here ${target.resourcePackage}) can be themed.\n\n" +
+                    "You can still choose an icon. It is saved in the theme, but HONOR shows the app's own icon.")
+                .setPositiveButton("Choose anyway") { _, _ -> chooseIcon(target, explained = true) }
+                .setNegativeButton("Close", null).show()
+            return
+        }
         val data = packData
         if (data == null) {
             MaterialAlertDialogBuilder(this).setTitle("Icon for ${target.label}")
@@ -571,10 +647,10 @@ class MainActivity : AppCompatActivity() {
             return
         }
         visualSheet("Icon for ${target.label}", target.packageName, true,
-            items = { query -> availableIconNames(data).filter { matches(query, it, friendlyName(it)) }.map { VisualItem(it, friendlyName(it), "", "pack:${data.pack.packageName}:$it") } },
+            items = { query -> searchIcons(data, query).map { VisualItem(it, friendlyName(it), "", "pack:${data.pack.packageName}:$it") } },
             suggested = { query ->
                 suggestionIndexes[data.pack.packageName]?.suggest(target).orEmpty()
-                    .filter { it.drawableName !in failedPackNames(data) && matches(query, it.drawableName, it.label) }
+                    .filter { it.drawableName !in failedPackNames(data) && query.score(listOf(searchText(it.drawableName), searchText(it.label))) != null }
                     .map { VisualItem(it.drawableName, it.label, it.reason, "pack:${data.pack.packageName}:${it.drawableName}") }
             },
             actions = listOf("Use original" to { useOriginal(target.packageName) }, "Reset" to {
@@ -609,10 +685,15 @@ class MainActivity : AppCompatActivity() {
     private fun chooseTarget(data: PackData, drawable: String) {
         val defaults = defaultMappings()
         visualSheet("Choose an app", "Use ${friendlyName(drawable)} for…", false,
-            items = { query -> targets().filter { matches(query, it.label, it.packageName) }
-                .sortedWith(compareBy<ApplicationTarget> { !appIconState(it.packageName, defaults).needsIcon }.thenBy(String.CASE_INSENSITIVE_ORDER) { it.label })
-                .map { target -> VisualItem(target.packageName, target.label, target.packageName, "app:${target.packageName}", "pack:${data.pack.packageName}:$drawable",
-                    appIconState(target.packageName, defaults).status, appIconState(target.packageName, defaults).needsIcon) } },
+            items = { query ->
+                val states = HashMap<String, AppIconState>()
+                fun state(target: ApplicationTarget) = states.getOrPut(target.packageName) { appIconState(target, defaults) }
+                val ranked = query.rank(targets()) { listOf(searchText(it.label), searchText(it.packageName)) }
+                // Without a query, apps that still need artwork come first.
+                (if (query.isBlank) ranked.sortedWith(compareBy<ApplicationTarget> { !state(it).needsIcon }.thenBy(String.CASE_INSENSITIVE_ORDER) { it.label }) else ranked)
+                    .map { target -> VisualItem(target.packageName, target.label, target.packageName, "app:${target.packageName}", "pack:${data.pack.packageName}:$drawable",
+                        state(target).status, state(target).needsIcon || state(target).unthemeable) }
+            },
             onSelect = { item -> targets().firstOrNull { it.packageName == item.key }?.let { assign(it, data, drawable) } })
     }
 
@@ -626,20 +707,34 @@ class MainActivity : AppCompatActivity() {
         return data.drawables.filter { data.isDrawableAvailable(it) && it !in failed }
     }
 
+    /**
+     * A full-screen picker. The keyboard only shortens the result list instead of
+     * covering a fixed-height sheet, wide and unfolded screens get more columns,
+     * and the subtitle and actions step aside while typing.
+     */
     private fun visualSheet(
         title: String,
         subtitle: String,
         grid: Boolean,
-        items: (String) -> List<VisualItem>,
-        suggested: ((String) -> List<VisualItem>)? = null,
+        items: (SearchQuery) -> List<VisualItem>,
+        suggested: ((SearchQuery) -> List<VisualItem>)? = null,
         actions: List<Pair<String, () -> Unit>> = emptyList(),
         onSelect: (VisualItem) -> Unit,
     ) {
-        val dialog = BottomSheetDialog(this)
-        val panel = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(16), dp(18), dp(16), dp(12)) }
-        panel.addView(label(title, 22f, bold = true))
-        panel.addView(label(subtitle, 12f, muted = true), LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(4); bottomMargin = dp(12) })
-        val search = searchField(panel, if (grid) "Search icons" else "Search names or packages")
+        val dialog = AppCompatDialog(this, R.style.Theme_MagicThemer_Picker)
+        val panel = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL; isFocusableInTouchMode = true
+            setBackgroundColor(color(com.google.android.material.R.attr.colorSurface))
+        }
+        val header = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
+        val headings = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        headings.addView(label(title, 20f, bold = true).apply { maxLines = 1; ellipsize = android.text.TextUtils.TruncateAt.END })
+        val subtitleView = label(subtitle, 12f, muted = true).apply { maxLines = 1; ellipsize = android.text.TextUtils.TruncateAt.END }
+        headings.addView(subtitleView)
+        header.addView(headings, LinearLayout.LayoutParams(0, -2, 1f))
+        header.addView(button("Close", borderless = true) { dialog.dismiss() }, LinearLayout.LayoutParams(-2, dp(48)).apply { marginStart = dp(8) })
+        panel.addView(header, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(8) })
+        val search = searchField(panel, if (grid) "Search icons or apps" else "Search names or packages")
         val adapter = VisualAdapter(this, thumbnails, grid) { item ->
             if (!busy) { dialog.dismiss(); onSelect(item) }
         }
@@ -648,45 +743,80 @@ class MainActivity : AppCompatActivity() {
         val catalogueHeader = suggested?.let { SheetSectionHeader("All pack icons") }
         val contentAdapter = if (suggestedAdapter == null) adapter else ConcatAdapter(suggestedHeader!!, suggestedAdapter, catalogueHeader!!, adapter)
         val list = recycler(contentAdapter, grid)
-        if (suggestedAdapter != null && grid) (list.layoutManager as GridLayoutManager).apply {
-            spanSizeLookup = object : GridLayoutManager.SpanSizeLookup() {
-                override fun getSpanSize(position: Int): Int = if (position == 0 || position == suggestedAdapter.itemCount + 1) spanCount else 1
+        if (suggestedAdapter != null) {
+            val columns = list.layoutManager as GridLayoutManager
+            columns.spanSizeLookup = object : GridLayoutManager.SpanSizeLookup() {
+                override fun getSpanSize(position: Int): Int {
+                    val catalogueStart = suggestedHeader!!.itemCount + suggestedAdapter.itemCount
+                    val header = (suggestedHeader.itemCount == 1 && position == 0) || position == catalogueStart
+                    return if (header) columns.spanCount else 1
+                }
             }
         }
         panel.addView(list, LinearLayout.LayoutParams(-1, 0, 1f).apply { topMargin = dp(8) })
-        val controls = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.END }
-        actions.forEach { (text, action) -> controls.addView(button(text, outlined = true) { dialog.dismiss(); if (!busy) action() }, LinearLayout.LayoutParams(0, dp(52), 1f).apply { marginEnd = dp(6) }) }
-        controls.addView(button("Close", tonal = true) { dialog.dismiss() }, LinearLayout.LayoutParams(if (actions.isEmpty()) -2 else 0, dp(52), if (actions.isEmpty()) 0f else 1f))
-        panel.addView(controls, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(6) })
-        fun updateResults(query: String) {
+        val controls = if (actions.isEmpty()) null else LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.END }
+        controls?.let { row ->
+            actions.forEachIndexed { index, (text, action) ->
+                row.addView(button(text, outlined = true) { dialog.dismiss(); if (!busy) action() },
+                    LinearLayout.LayoutParams(0, dp(52), 1f).apply { if (index > 0) marginStart = dp(8) })
+            }
+            panel.addView(row, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(6) })
+        }
+        fun updateResults(text: String, scrollToTop: Boolean) {
+            val query = SearchQuery(text)
             val matches = items(query)
             val recommendations = suggested?.invoke(query).orEmpty()
-            suggestedAdapter?.submit(recommendations)
-            suggestedHeader?.update(if (recommendations.isEmpty()) "No close suggestions · browse all icons below" else "Suggested icons (${recommendations.size}) · tap to choose")
-            catalogueHeader?.update("All pack icons (${matches.size})")
-            adapter.submit(matches)
+            // While searching, a separate suggestion section would push matches
+            // behind the keyboard, so suggestions lead one ranked result grid.
+            val separate = query.isBlank
+            suggestedAdapter?.submit(if (separate) recommendations else emptyList())
+            suggestedHeader?.update(if (recommendations.isEmpty()) "No close suggestions · browse all icons below" else "Suggested icons (${recommendations.size}) · tap to choose",
+                visible = separate)
+            val results = if (separate || recommendations.isEmpty()) matches else {
+                val byKey = matches.associateBy { it.key }
+                recommendations.map { byKey[it.key] ?: it.copy(subtitle = "") } + matches.filter { item -> recommendations.none { it.key == item.key } }
+            }
+            catalogueHeader?.update(if (separate) "All pack icons (${matches.size})" else "Matching icons (${results.size}) · best first")
+            adapter.submit(results) { if (scrollToTop) list.scrollToPosition(0) }
         }
-        updateResults("")
-        watchSearch(search) { updateResults(search.text.toString().trim()) }
+        updateResults("", false)
+        watchSearch(search) { updateResults(search.text.toString(), true) }
+        ViewCompat.setOnApplyWindowInsetsListener(panel) { view, insets ->
+            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout())
+            val ime = insets.getInsets(WindowInsetsCompat.Type.ime())
+            view.setPadding(bars.left + dp(16), bars.top + dp(8), bars.right + dp(16), maxOf(bars.bottom, ime.bottom) + dp(8))
+            val keyboard = insets.isVisible(WindowInsetsCompat.Type.ime())
+            subtitleView.visibility = if (keyboard) View.GONE else View.VISIBLE
+            controls?.visibility = if (keyboard) View.GONE else View.VISIBLE
+            WindowInsetsCompat.CONSUMED
+        }
         dialog.setContentView(panel)
+        dialog.window?.let { window ->
+            window.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+            WindowCompat.setDecorFitsSystemWindows(window, false)
+            window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
+        }
         dialog.setOnDismissListener { list.adapter = null }
         dialog.show()
-        dialog.window?.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
-        dialog.findViewById<FrameLayout>(com.google.android.material.R.id.design_bottom_sheet)?.let { sheet ->
-            sheet.layoutParams = sheet.layoutParams.apply { height = (resources.displayMetrics.heightPixels * 0.9f).toInt() }
-            BottomSheetBehavior.from(sheet).apply { skipCollapsed = true; state = BottomSheetBehavior.STATE_EXPANDED }
-        }
     }
 
     private inner class SheetSectionHeader(private var value: String) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
-        override fun getItemCount(): Int = 1
+        private var shown = true
+        override fun getItemCount(): Int = if (shown) 1 else 0
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder =
             object : RecyclerView.ViewHolder(label("", 14f, muted = true, bold = true).apply {
                 setPadding(dp(4), dp(14), dp(4), dp(10)); layoutParams = RecyclerView.LayoutParams(-1, -2)
                 ViewCompat.setAccessibilityHeading(this, true)
             }) {}
         override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) { (holder.itemView as TextView).text = value }
-        fun update(text: String) { value = text; notifyItemChanged(0) }
+        fun update(text: String, visible: Boolean = true) {
+            value = text
+            when {
+                visible && !shown -> { shown = true; notifyItemInserted(0) }
+                !visible && shown -> { shown = false; notifyItemRemoved(0) }
+                visible -> notifyItemChanged(0)
+            }
+        }
     }
 
     private fun openThemePicker() {
@@ -1123,8 +1253,22 @@ class MainActivity : AppCompatActivity() {
     private fun cachePack(data: PackData) {
         if (loadedPacks[data.pack.packageName] !== data || !suggestionIndexes.containsKey(data.pack.packageName)) {
             suggestionIndexes[data.pack.packageName] = IconSuggestions(data)
+            iconSearchIndexes[data.pack.packageName] = iconSearchIndex(data)
         }
         loadedPacks[data.pack.packageName] = data
+    }
+
+    /** Each artwork name plus the packages the pack maps to it, normalized once per pack. */
+    private fun iconSearchIndex(data: PackData): Map<String, List<SearchText>> {
+        val mapped = HashMap<String, MutableSet<String>>()
+        data.mappings.forEach { mapping ->
+            val packages = mapped.getOrPut(mapping.drawableName) { linkedSetOf() }
+            if (packages.size < 8) packages += mapping.packageName
+        }
+        return data.drawables.associateWith { name ->
+            val packages = mapped[name]
+            if (packages == null) listOf(SearchText.of(name)) else listOf(SearchText.of(name), SearchText.of(packages.joinToString(" ")))
+        }
     }
 
     private fun background(block: () -> Unit) {
@@ -1159,14 +1303,50 @@ class MainActivity : AppCompatActivity() {
 
     private fun showPage() { if (::pages.isInitialized) pages.forEachIndexed { index, view -> view.visibility = if (index == selectedTab) View.VISIBLE else View.GONE } }
 
+    /** While the keyboard is open, the header and save bar give their height to search results. */
+    private fun setTyping(value: Boolean) {
+        if (typing == value || !::footer.isInitialized) return
+        typing = value
+        val visibility = if (value) View.GONE else View.VISIBLE
+        toolbar.visibility = visibility; sourceArea.visibility = visibility; footer.visibility = visibility
+    }
+
+    private fun hideKeyboard(view: View) {
+        (getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager).hideSoftInputFromWindow(view.windowToken, 0)
+        view.rootView.findFocus()?.takeIf { it is TextInputEditText }?.clearFocus()
+    }
+
+    /**
+     * Columns follow the list's actual width, so an unfolded inner screen shows
+     * more results than the cover screen and refits after folding or resizing.
+     */
     private fun recycler(adapter: RecyclerView.Adapter<*>, grid: Boolean): RecyclerView = RecyclerView(this).apply {
-        layoutManager = if (grid) GridLayoutManager(this@MainActivity, (resources.displayMetrics.widthPixels / dp(110)).coerceIn(3, 8)) else LinearLayoutManager(this@MainActivity)
+        val columns = GridLayoutManager(this@MainActivity, 1)
+        fun span(width: Int): Int = if (grid) (width / dp(104)).coerceIn(3, 10) else (width / dp(340)).coerceIn(1, 3)
+        layoutManager = columns
+        columns.spanCount = span(resources.displayMetrics.widthPixels)
+        addOnLayoutChangeListener { _, left, _, right, _, oldLeft, _, oldRight, _ ->
+            val width = right - left
+            if (width > 0 && width != oldRight - oldLeft && span(width) != columns.spanCount) post { columns.spanCount = span(width) }
+        }
+        // Dragging the results puts the keyboard away so every match is visible.
+        addOnScrollListener(object : RecyclerView.OnScrollListener() {
+            override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
+                if (newState == RecyclerView.SCROLL_STATE_DRAGGING &&
+                    ViewCompat.getRootWindowInsets(recyclerView)?.isVisible(WindowInsetsCompat.Type.ime()) == true) hideKeyboard(recyclerView)
+            }
+        })
         this.adapter = adapter; clipToPadding = false; setPadding(0, 0, 0, dp(8)); itemAnimator = null
     }
 
     private fun searchField(parent: LinearLayout, hint: String): TextInputEditText {
         val layout = TextInputLayout(this, null, com.google.android.material.R.attr.textInputStyle).apply { this.hint = hint; endIconMode = TextInputLayout.END_ICON_CLEAR_TEXT }
-        val input = TextInputEditText(layout.context).apply { setSingleLine(); textSize = 15f; inputType = android.text.InputType.TYPE_CLASS_TEXT }
+        val input = TextInputEditText(layout.context).apply {
+            setSingleLine(); textSize = 15f; inputType = android.text.InputType.TYPE_CLASS_TEXT
+            // No full-screen landscape editor: results must stay visible beside the keyboard.
+            imeOptions = EditorInfo.IME_ACTION_SEARCH or EditorInfo.IME_FLAG_NO_EXTRACT_UI
+            setOnEditorActionListener { view, action, _ -> (action == EditorInfo.IME_ACTION_SEARCH).also { if (it) hideKeyboard(view) } }
+        }
         layout.addView(input); parent.addView(layout, LinearLayout.LayoutParams(-1, dp(60)))
         return input
     }
@@ -1182,8 +1362,13 @@ class MainActivity : AppCompatActivity() {
         return input
     }
 
-    private fun button(text: String, tonal: Boolean = false, outlined: Boolean = false, action: () -> Unit): MaterialButton =
-        MaterialButton(this, null, when { outlined -> com.google.android.material.R.attr.materialButtonOutlinedStyle; tonal -> com.google.android.material.R.attr.materialButtonTonalStyle; else -> com.google.android.material.R.attr.materialButtonStyle }).apply {
+    private fun button(text: String, tonal: Boolean = false, outlined: Boolean = false, borderless: Boolean = false, action: () -> Unit): MaterialButton =
+        MaterialButton(this, null, when {
+            borderless -> androidx.appcompat.R.attr.borderlessButtonStyle
+            outlined -> com.google.android.material.R.attr.materialButtonOutlinedStyle
+            tonal -> com.google.android.material.R.attr.materialButtonTonalStyle
+            else -> com.google.android.material.R.attr.materialButtonStyle
+        }).apply {
             this.text = text; isAllCaps = false; textSize = 14f; minHeight = dp(48); setOnClickListener { if (!busy) action() }
         }
 
@@ -1208,7 +1393,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun matches(query: String, vararg values: String): Boolean = query.isBlank() || values.any { it.contains(query, ignoreCase = true) }
     private fun friendlyName(value: String): String = value.trim('_').replace('_', ' ').replaceFirstChar { it.uppercase() }
     private fun color(attribute: Int): Int = MaterialColors.getColor(this, attribute, Color.GRAY)
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density + 0.5f).toInt()
@@ -1248,6 +1432,8 @@ class MainActivity : AppCompatActivity() {
         private const val FILTER_ALL = 0
         private const val FILTER_MISSING = 1
         private const val FILTER_CUSTOMIZED = 2
+        private const val FILTER_UNTHEMEABLE = 3
+        private const val MAX_SEARCH_TEXTS = 200_000
         private val FORMATS = listOf("HONOR (.hnt)", "Compatibility (.hwt)")
     }
 }

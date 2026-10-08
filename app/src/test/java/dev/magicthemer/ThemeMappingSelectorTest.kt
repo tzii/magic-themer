@@ -14,6 +14,13 @@ class ThemeMappingSelectorTest {
         assertEquals(listOf("correct"), selected.map { it.drawableName })
     }
 
+    @Test fun honorCanOnlyThemeBuildsWhoseResourcesUseTheInstalledPackage() {
+        assertTrue(ApplicationTarget("com.example", "App", emptyList()).honorThemeable)
+        assertTrue(ApplicationTarget("com.example", "App", emptyList(), "com.example").honorThemeable)
+        // DroidDeck's AnTuTu variant: only the manifest package was renamed after compilation.
+        assertFalse(ApplicationTarget("com.antutu.benchmark.full", "DroidDeck", emptyList(), "com.droiddeck.launcher").honorThemeable)
+    }
+
     @Test fun installedOnlyAndAllModesProduceDifferentCoverage() {
         val mappings = listOf(icon("com.present", "com.present.Main", "present"), icon("com.absent", "com.absent.Main", "absent"))
         val apps = listOf(ApplicationTarget("com.present", "Present", listOf("com.present.Main")))

@@ -50,6 +50,15 @@
 
     <style name="Theme.MagicThemer" parent="Base.Theme.MagicThemer" />
 
+    <!-- Full-screen pickers: the keyboard shortens the results instead of covering them. -->
+    <style name="Theme.MagicThemer.Picker" parent="Theme.MagicThemer">
+        <item name="android:windowIsFloating">false</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="windowNoTitle">true</item>
+        <item name="windowActionBar">false</item>
+        <item name="android:windowSoftInputMode">adjustResize</item>
+    </style>
+
     <style name="ShapeAppearance.MagicThemer.Card" parent="ShapeAppearance.Material3.Corner.Large">
         <item name="cornerFamily">rounded</item>
         <item name="cornerSize">20dp</item>

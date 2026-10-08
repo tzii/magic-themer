@@ -51,7 +51,10 @@ class VisualAdapter(
         override fun areContentsTheSame(oldItem: VisualItem, newItem: VisualItem): Boolean = oldItem == newItem
     })
 
-    fun submit(items: List<VisualItem>) { differ.submitList(items.toList()) }
+    /** [committed] runs once the new list is displayed, e.g. to show the best match first. */
+    fun submit(items: List<VisualItem>, committed: (() -> Unit)? = null) {
+        differ.submitList(items.toList()) { committed?.invoke() }
+    }
 
     override fun getItemCount(): Int = differ.currentList.size
 

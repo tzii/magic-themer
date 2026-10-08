@@ -28,6 +28,7 @@ Existing features:
 - Renders bitmap, vector and adaptive drawables as transparent 192 px PNGs.
 - Uses Material 3 components with light/dark themes and visual pack, app and icon browsing.
 - Reports installed-app coverage and lets you reassign app icons from a searchable artwork gallery.
+- Search ranks the best matches first and tolerates a small typo, joined or split words ("droid deck") and initials ("yt"). Artwork is also found by the apps a pack maps it to. While typing, the header and save bar make room for results, and dragging the results hides the keyboard. Wide and unfolded screens show more columns.
 - Saves manual assignments locally per pack.
 - Defaults to the full mapped pack, including apps absent from this phone. Installed-app-only export remains available.
 - Creates experimental `.hnt` and `.hwt` theme archives and saves through Android's system file picker.
@@ -81,6 +82,7 @@ The separate `:qa:iconpack` module is an original synthetic icon pack for emulat
 ## Limits and next milestones
 
 - MagicOS archive acceptance, automatic discovery and launcher icon rendering need verification on the exact EU phone/build.
+- HONOR themes an app only when its icon's resource package matches its installed package. Builds renamed after compilation, such as DroidDeck's AnTuTu, PUBG and Ludashi variants, keep their own icon under any theme. **Apps** marks them **HONOR can't theme**; see [research](docs/RESEARCH.md#8-october-icons-the-launcher-leaves-unthemed).
 - Only explicitly mapped or manually assigned icons are exported. Pack fallback masks, backgrounds and scale recipes are not applied to unmapped apps.
 - Package-level HONOR filenames mean one exported icon per app package. Multiple launcher activities cannot all have independent themed icons in this profile.
 - Calendars are a snapshot of the current day. Clock hands and launcher-specific monochrome tinting are not dynamic.
