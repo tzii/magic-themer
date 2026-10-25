@@ -9,16 +9,16 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color
-import android.graphics.LinearGradient
 import android.graphics.Paint
 import android.graphics.Rect
-import android.graphics.Shader
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.provider.DocumentsContract
 import android.provider.OpenableColumns
+import android.provider.Settings
 import android.text.Editable
 import android.text.InputFilter
 import android.text.TextWatcher
@@ -988,7 +988,6 @@ class MainActivity : AppCompatActivity() {
                     if (source == null) ThemeArchive.write(
                         stream, title, sourceLabel, replacements.map { ThemeIcon(it.key, it.value) }, format,
                         preview = preview, iconsPreview = iconsPreview, tempDirectory = themeWorkDir, designer = designer, briefInfo = brief,
-                        wallpaper = createWallpaper(1080, 2400),
                     ) else ThemeEditor.write(source, stream, title, designer, brief, replacements, removed, replaceAll, preview, iconsPreview,
                         upgradeMinimalProfile = repair)
                 }
@@ -1009,18 +1008,6 @@ class MainActivity : AppCompatActivity() {
             } catch (failure: Exception) { output.delete(); throw failure }
             finally { previewIcons.forEach { it.recycle() } }
         }
-    }
-
-    /** Retained in the v0.5 layout; the wallpaper-free control is also listed on the phone. */
-    private fun createWallpaper(width: Int, height: Int): ByteArray {
-        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
-        try {
-            val paint = Paint().apply {
-                shader = LinearGradient(0f, 0f, 0f, height.toFloat(), Color.rgb(28, 32, 44), Color.rgb(8, 10, 16), Shader.TileMode.CLAMP)
-            }
-            Canvas(bitmap).drawRect(0f, 0f, width.toFloat(), height.toFloat(), paint)
-            return ByteArrayOutputStream().use { stream -> check(bitmap.compress(Bitmap.CompressFormat.JPEG, 90, stream)); stream.toByteArray() }
-        } finally { bitmap.recycle() }
     }
 
     private fun createPreview(title: String, icons: List<Bitmap>, width: Int, height: Int): ByteArray {
@@ -1072,24 +1059,40 @@ class MainActivity : AppCompatActivity() {
             val expectedBytes = file.length()
             var expectedHash = byteArrayOf()
             var verifiedName: String? = null
+            var destination = uri
             try {
                 require(expectedBytes > 0) { "The working export is empty. Save your theme again." }
+                // ACTION_CREATE_DOCUMENT initially exposes an empty .hnt. Drop that
+                // extension while writing, then publish the verified file by rename,
+                // like moving a completed export into the Themes folder.
+                val (requestedName, flags) = savedDocumentInfo(destination)
+                val stagedName = requestedName?.takeIf {
+                    it.endsWith(".${file.extension}", ignoreCase = true) &&
+                        flags and DocumentsContract.Document.FLAG_SUPPORTS_RENAME != 0
+                }?.let { "$it.${file.nameWithoutExtension}.partial" }
+                val stagedUri = stagedName?.let { name ->
+                    runCatching { DocumentsContract.renameDocument(contentResolver, destination, name) }.getOrNull()
+                }
+                if (stagedUri != null) destination = stagedUri
                 expectedHash = file.inputStream().use { verifiedHash(it, expectedBytes) }
-                val stream = contentResolver.openOutputStream(uri, "w") ?: error("This location cannot be written.")
+                val stream = contentResolver.openOutputStream(destination, "w") ?: error("This location cannot be written.")
                 val writtenBytes = stream.use { output -> file.inputStream().use { it.copyTo(output, 32 * 1024) } }
                 require(writtenBytes == expectedBytes) { "The saved file has an unexpected length." }
-                val savedInput = contentResolver.openInputStream(uri) ?: error("This location does not allow verification of the saved file.")
-                val savedHash = savedInput.use { verifiedHash(it, expectedBytes) }
-                require(MessageDigest.isEqual(expectedHash, savedHash)) { "The saved file differs from the working export." }
-                verifiedName = runCatching {
-                    contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
-                        if (cursor.moveToFirst()) cursor.getString(0) else null
-                    }
-                }.getOrNull()
+                verifySavedDocument(destination, expectedBytes, expectedHash)
+                if (stagedUri != null) {
+                    destination = DocumentsContract.renameDocument(contentResolver, destination, checkNotNull(requestedName))
+                        ?: error("This location could not finalize the theme filename.")
+                    // A rename may return a different document URI and invalidate the old one.
+                    verifySavedDocument(destination, expectedBytes, expectedHash)
+                }
+                verifiedName = savedDocumentInfo(destination).first
+                if (stagedUri != null) require(verifiedName?.endsWith(".${file.extension}", ignoreCase = true) == true) {
+                    "This location did not restore the theme filename."
+                }
             } catch (failure: Exception) {
                 // This URI was just created by ACTION_CREATE_DOCUMENT; the
                 // imported source and private working export remain untouched.
-                val removed = runCatching { DocumentsContract.deleteDocument(contentResolver, uri) }.getOrDefault(false)
+                val removed = runCatching { DocumentsContract.deleteDocument(contentResolver, destination) }.getOrDefault(false)
                 val cleanup = if (removed) " The unverified destination was removed." else " The destination could not be verified; remove it before retrying."
                 throw IllegalStateException("Save verification failed: ${failure.message ?: "the saved file could not be read"}. Working export retained; save again.$cleanup", failure)
             }
@@ -1107,10 +1110,27 @@ class MainActivity : AppCompatActivity() {
                 file.delete(); pendingExport = null; persist()
                 setBusy(false, "$pendingReport Verified ${filename ?: "saved file"} ($expectedBytes bytes).")
                 MaterialAlertDialogBuilder(this).setTitle("Theme saved")
-                    .setMessage("$verifiedReport\n\nSave or copy it to internal storage / HONOR / Themes, then open HONOR Themes → Me → My downloads → Customize → Icons. File verification checks the saved bytes; discovery and compatibility still require checking on your phone.")
-                    .setPositiveButton("Open Themes") { _, _ -> openThemes() }.setNegativeButton("Done", null).show()
+                    .setMessage("$verifiedReport\n\nSave or copy it to internal storage / HONOR / Themes, then open HONOR Themes → Me → My downloads → Customize → Icons.\n\nIf your theme is missing, tap App info, choose Force stop, then reopen Themes. This refreshed the list on the tested Magic V5.")
+                    .setPositiveButton("Open Themes") { _, _ -> openThemes() }
+                    .setNeutralButton("App info") { _, _ -> openThemesAppInfo() }
+                    .setNegativeButton("Done", null).show()
             }
         }
+    }
+
+    private fun savedDocumentInfo(uri: Uri): Pair<String?, Int> = runCatching {
+        contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME, DocumentsContract.Document.COLUMN_FLAGS), null, null, null)?.use { cursor ->
+            if (!cursor.moveToFirst()) return@use null
+            val name = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME).takeIf { it >= 0 }?.let(cursor::getString)
+            val flags = cursor.getColumnIndex(DocumentsContract.Document.COLUMN_FLAGS).takeIf { it >= 0 }?.let(cursor::getInt) ?: 0
+            name to flags
+        }
+    }.getOrNull() ?: (null to 0)
+
+    private fun verifySavedDocument(uri: Uri, expectedBytes: Long, expectedHash: ByteArray) {
+        val input = contentResolver.openInputStream(uri) ?: error("This location does not allow verification of the saved file.")
+        val savedHash = input.use { verifiedHash(it, expectedBytes) }
+        require(MessageDigest.isEqual(expectedHash, savedHash)) { "The saved file differs from the working export." }
     }
 
     /** Read at most the known working export's size, rejecting extra/missing bytes. */
@@ -1184,15 +1204,24 @@ class MainActivity : AppCompatActivity() {
 
     private fun showGuide() {
         MaterialAlertDialogBuilder(this).setTitle("Apply your theme").setMessage(
-            "1. Save or copy the exported file to internal storage / HONOR / Themes.\n\n2. Open HONOR Themes → Me → My downloads.\n\n3. Choose Customize → Icons and select your theme. Menu labels can vary by region.\n\nNew exports follow an experimental profile based on a working HONOR theme. Applying exported or converted files on MagicOS 10.0.0.168 EU still needs phone verification.\n\nImported ordinary ZIP themes are saved as a new copy. Static package PNGs and title, designer, and description can be edited; other modules and authored previews are preserved. Selecting a pack does not alter an imported theme until you apply the pack or assign an icon. Minimal legacy icon themes can use Repair theme compatibility when saving a copy; icons and designer credit are preserved.\n\nUse Needs icon to find apps without usable artwork. Suggested icons are local name and app matches: review and tap to assign them.\n\nUse exports personally; artwork remains owned by its creator.",
-        ).setPositiveButton("Open Themes") { _, _ -> openThemes() }.setNegativeButton("Close", null).show()
+            "1. Save or copy the exported file to internal storage / HONOR / Themes.\n\n2. Open HONOR Themes → Me → My downloads. If your theme is missing, tap App info, choose Force stop, then reopen Themes.\n\n3. Choose Customize → Icons and select your theme. Menu labels can vary by region.\n\nIcon application and persistence are confirmed on the tested Magic V5 / MagicOS 10.0.0.168 EU. New exports use the tested wallpaper-free layout. Themes may keep an old downloads list until it is force-stopped and reopened.\n\nImported ordinary ZIP themes are saved as a new copy. Static package PNGs and title, designer, and description can be edited; other modules and authored previews are preserved. Selecting a pack does not alter an imported theme until you apply the pack or assign an icon. Minimal legacy icon themes can use Repair theme compatibility when saving a copy; icons and designer credit are preserved.\n\nUse Needs icon to find apps without usable artwork. Suggested icons match app names, mappings or app categories: review and tap to assign them.\n\nUse exports personally; artwork remains owned by its creator.",
+        ).setPositiveButton("Open Themes") { _, _ -> openThemes() }
+            .setNeutralButton("App info") { _, _ -> openThemesAppInfo() }
+            .setNegativeButton("Close", null).show()
     }
 
     private fun openThemes() {
-        val intent = listOf("com.hihonor.android.thememanager", "com.huawei.android.thememanager").firstNotNullOfOrNull { packageManager.getLaunchIntentForPackage(it) }
+        val intent = THEME_PACKAGES.firstNotNullOfOrNull { packageManager.getLaunchIntentForPackage(it) }
         if (intent == null) MaterialAlertDialogBuilder(this).setTitle("Open HONOR Themes manually")
             .setMessage("Open the Themes app, or Settings → Home screen & personalization → Themes.").setPositiveButton("Close", null).show()
         else runCatching { startActivity(intent) }.onFailure { status.text = "Open Themes from your home screen." }
+    }
+
+    private fun openThemesAppInfo() {
+        val pkg = THEME_PACKAGES.firstOrNull { packageManager.getLaunchIntentForPackage(it) != null }
+        if (pkg == null) { openThemes(); return }
+        val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", pkg, null))
+        runCatching { startActivity(intent) }.onFailure { status.text = "Open Settings → Apps → Themes → Force stop, then reopen Themes." }
     }
 
     private fun sessionKey(): String = document?.sourceFile?.name ?: "new:${packData?.pack?.packageName ?: "none"}"
@@ -1469,6 +1498,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     companion object {
+        private val THEME_PACKAGES = listOf("com.hihonor.android.thememanager", "com.huawei.android.thememanager")
         private const val DEFAULT_TITLE = "My Magic Icons"
         private const val OPEN_THEME = 101
         private const val SAVE_THEME = 100

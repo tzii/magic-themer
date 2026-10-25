@@ -93,10 +93,14 @@ class ThemeArchiveTest {
         }
     }
 
-    @Test fun previewsAreOptionalAndUseDocumentedEntryNames() {
+    @Test fun newIconExportUsesValidatedALayoutWithoutWallpaperOrSystemModules() {
         val jpeg = byteArrayOf(0xff.toByte(), 0xd8.toByte(), 0xff.toByte(), 0xd9.toByte())
         val largeJpeg = jpeg + byteArrayOf(0)
         val entries = unzip(export(preview = jpeg, iconsPreview = largeJpeg))
+        assertEquals(listOf(
+            "preview/preview_icons_0.jpg", "preview/preview_unlock_0.jpg", "preview/icon_small.jpg", "preview/",
+            "unlock/theme.xml", "unlock/", "description.xml", "icons",
+        ), entries.keys.toList())
         assertArrayEquals(largeJpeg, entries.getValue("preview/preview_icons_0.jpg"))
         assertArrayEquals(jpeg, entries.getValue("preview/icon_small.jpg"))
         assertArrayEquals(largeJpeg, entries.getValue("preview/preview_unlock_0.jpg"))

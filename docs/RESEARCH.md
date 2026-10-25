@@ -6,7 +6,7 @@ Research date: 7 October 2026. Target supplied by user: HONOR Magic V5, MagicOS 
 
 An independent local icon-pack-to-theme converter is feasible using ordinary Android APIs. The engineering path is: discover an installed pack → read its public resources and component mappings → choose one drawable per target package → rasterize icons → package a candidate HONOR theme → let the user import and apply its icons in HONOR Themes.
 
-The user supplied a previously unlisted Magic Themer export and a working Peafowl theme from the target phone. On 25 October, the user confirmed that a v0.5 export and all three import controls appeared in HONOR Themes after a phone restart, including the wallpaper-free A control. Listing is now established for those files; launcher rendering and the earlier edited-theme repairs remain separate checks. No target V5 was connected during development; the new listing evidence comes from the user's phone report and screenshot, not the emulator.
+The user supplied a previously unlisted Magic Themer export and a working Peafowl theme from the target phone. On 25 October, the user confirmed listing after restart, followed by successful v0.5 icon application on both displays, unchanged wallpaper and expected persistence. The wallpaper-free A control also applies icons. A later export needed only force-stopping and reopening Themes to appear; Peafowl does not need that workaround on the same phone. Immediate discovery and the earlier edited-theme repairs remain separate checks. No target V5 was connected during development; the physical-device evidence comes from the user's reports and screenshots.
 
 ## Evidence and confidence
 
@@ -34,7 +34,7 @@ Background work avoids rendering the entire pack for a preview. Visual lists use
 
 ## Candidate archive profile
 
-The writer creates an outer theme ZIP containing `description.xml`, an extensionless `icons` ZIP, an empty `unlock/theme.xml` declaration and generated preview JPEGs. The inner ZIP contains `com.example.app.png` files at its root. v0.5 also includes a generated wallpaper and directory records; it does not bundle font or system UI artwork. The editor preserves existing modules from imported files. The wallpaper-free A control is also listed after restart, so wallpaper is not established as a listing requirement.
+The writer creates an outer theme ZIP containing `description.xml`, an extensionless `icons` ZIP, an empty `unlock/theme.xml` declaration and generated preview JPEGs. The inner ZIP contains `com.example.app.png` files at its root. v0.5 also included generated wallpaper and directory records. After the wallpaper-free A control was confirmed to apply icons, v0.6 stopped generating wallpaper while retaining the directory records, order and timestamps. New exports do not bundle font or system UI artwork; the editor preserves existing modules from imported files.
 
 v0.3 uses `HwTheme` version `12` for both extension choices, with title/title-cn, author/designer and Default font declarations. The `.hwt` option changes the extension, not the metadata profile. Ordinary imported themes preserve their original profile. A narrow opt-in repair upgrades recognizable older minimal Magic Themer `HnTheme` version `8.0.0` exports.
 
@@ -112,9 +112,25 @@ The result is consistent with delayed theme discovery or indexing refreshed by r
 
 Use the current v0.5 export as the working baseline and keep the exporter unchanged while checking actual icon application. Retain A/B/C and the Peafowl original locally as diagnostic evidence; they are not additional themes the user needs to maintain on the phone. A is a possible smaller export profile for a later application check. Do not adopt C's full third-party base as the app's export template.
 
+## 25 October follow-up: icon application and force-stop refresh
+
+The user confirms that My Magic Icons from v0.5 applies correctly on both displays, leaves wallpaper unchanged through icon customization, has useful recommendations for the missing-app examples, and persists as expected. The wallpaper-free A control also applies icons. Two supplied launcher screenshots show A and the user's v0.5 export with themed artwork. They are qualitative device evidence, not identical icon selections or an exhaustive comparison of every app.
+
+For the later export, force-stopping HONOR Themes and reopening it made the theme appear in My downloads; reboot was unnecessary in that case. Peafowl exports appear without that workaround on the same phone. This separates valid archive/application behavior from stale discovery state.
+
+The user then clarified that Peafowl uses Android's Save dialog outside the Themes folder; the user manually moves the completed file into `Honor/Themes`. The supplied screenshots show Peafowl's **Theme saved** instructions and **Open Themes App** button, then a new **test dialog** entry in HONOR Themes. This makes completed-file arrival a concrete difference from Magic Themer's direct save. It does not establish a special Peafowl import or refresh API.
+
+With `ACTION_CREATE_DOCUMENT`, the selected `.hnt` exists before its contents are written. An observer could attempt to parse that empty/incomplete archive and retain a stale result. This is a hypothesis consistent with the reported direct-save versus manual-move behavior, not confirmed HONOR implementation evidence.
+
+v0.6 uses the validated A layout and removes generated wallpaper from new exports. If the selected provider advertises `FLAG_SUPPORTS_RENAME`, the new destination is renamed to a temporary non-theme name before writing, closed and SHA-256 verified, then renamed to the selected final name and read back again for verification. The picker-created empty final document exists briefly before staging; the completed archive's final arrival is a rename. The app follows the new URI returned by [DocumentsContract.renameDocument](https://developer.android.com/reference/android/provider/DocumentsContract#renameDocument(android.content.ContentResolver,%20android.net.Uri,%20java.lang.String)), because the old URI may become invalid. Providers without rename support use the existing verified direct save. Failed saves attempt to remove only the newly created destination and retain the private working export for retry.
+
+Whether that final rename causes the target HONOR Themes build to update its downloads list still requires a phone test. **Open Themes** remains a normal app launch. The save dialog and guide also link to Themes' system app-info screen for the confirmed manual Force stop workaround.
+
+An extra media-scan broadcast was not added as a speculative fix. AOSP's [FileSystemProvider](https://raw.githubusercontent.com/aosp-mirror/platform_frameworks_base/master/core/java/com/android/internal/content/FileSystemProvider.java) already triggers scanning when a writable file descriptor closes. That is source evidence for the standard local provider, not proof of HONOR's implementation or Themes' private indexing behavior. [HONOR's older overseas testing guide](https://developer.honor.com/cn/kitdoc?category=content&docId=mobile1.md&kitId=11106&navigation=guides) documents a Themes app-specific destination, but does not document a normal third-party refresh API; the working user-selected shared folder remains the app's save route.
+
 ## Scope after the device test
 
-1. `.hnt` listing after restart is confirmed for the v0.5 export and A/B/C controls. Next confirm actual icon changes on both V5 displays and persistence after another restart; `.hwt` remains untested on the phone.
+1. `.hnt` listing, v0.5 application on both displays and persistence are confirmed; A also applies icons. Next check fresh-export discovery after v0.6's final rename, compared with manually moving a completed export. `.hwt` remains untested on the phone.
 2. Add compatibility profiles only from working archive evidence; keep the original working theme available for comparison.
 3. Validate full mapped-pack export, drawable.xml alternatives and existing-theme edits on the phone; retain original/input files for comparison.
 4. Implement unmapped-app fallback composition and tint controls as separate verified features.

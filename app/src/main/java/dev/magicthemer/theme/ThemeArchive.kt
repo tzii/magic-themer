@@ -13,11 +13,11 @@ import java.nio.charset.StandardCharsets
  * entry is itself an extensionless ZIP with flat package-name PNG entries.
  * The schema version is a theme format version, not the phone's OS version.
  *
- * The outer layout mirrors a Peafowl export that the same phone lists under
- * My downloads: previews, unlock and wallpaper modules with their folder
- * records, then description.xml and icons, all with real timestamps. The v0.5
- * export and a wallpaper-free control were listed after a phone restart;
- * requirements for the other packaging details remain unverified.
+ * New app exports use the wallpaper-free A layout verified on the target phone:
+ * previews and an empty unlock declaration with folder records, followed by
+ * description.xml and icons, all with real timestamps. The optional wallpaper
+ * parameter is retained for compatibility diagnostics; the app does not set it.
+ * Immediate discovery in an already-running Themes app remains unverified.
  */
 object ThemeArchive {
     const val SCHEMA_VERSION = "12"

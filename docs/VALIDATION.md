@@ -1,5 +1,34 @@
 # Validation record
 
+## 25 October 2026: v0.6 build and save-publication checks
+
+The final APK includes the new optimized adaptive launcher icon and its dedicated monochrome resource. Build isolation started from commit `94868108375013ee0a67983e6ef374682ce7d2bd`, overlaid this task's export/save changes and the user-authorized icon resources, and kept generated evidence under ignored `qa/output/v6/`. The original SVG remains unchanged.
+
+- `:app:assembleDebug`, `:app:testDebugUnitTest` and `:app:lintDebug` passed. The source tests contain **86 passes**, zero failures/errors and two optional supplied-theme tests skipped. After adding the icon resources, assembly and lint passed again: zero lint errors and 53 warnings.
+- `qa/discovery_runtime_test.py` passed against the final APK on the Android 16 / API 36.1 phone emulator. It uses the original synthetic QA pack, resets only this app's emulator data and writes a named QA document in Downloads.
+- The actual saved ZIP has A's eight outer entries, four package PNGs and no wallpaper/system modules. Both ZIP layers are readable. The dialog's filename, size and SHA-256 match the pulled document.
+- A native file-event trace confirms that the temporary document's writable handle closes before the final `.hnt` rename arrival. The finalized document has no later writes, and no temporary document remains. `publication-events.txt`, `discovery-report.json` and screenshots preserve the evidence.
+- The save dialog and apply guide expose the **App info** action. Both normal opening and app-info opening fall back safely when neither HONOR nor Huawei Themes is installed. No HONOR discovery behavior is simulated by this test.
+- APK Signature Scheme v2 verification passed. The packaged APK contains the dedicated monochrome icon resource.
+
+The first hidden-temporary-name experiment exposed Downloads provider normalization and an empty leftover file; normal temporary names avoid that behavior, and the final test asserts that no staging file remains. The longer app-info button label was clipped in the guide; the final shorter label is visible and actionable in the inspected screenshot. No validation assertions or quality gates were weakened.
+
+APK: `dist/Magic-Themer-0.6.0-discovery-debug.apk`, **7,790,560 bytes**, version `0.6.0` / code `6`. SHA-256: `42e17b8559bdbe9eac89243e9511b64cd78bc8a1dbead5636c41691d9bc9167a`.
+
+Reproduce after building the APK and synthetic QA pack:
+
+```powershell
+python qa/discovery_runtime_test.py --adb "$env:LOCALAPPDATA\Android\Sdk\platform-tools\adb.exe" --serial emulator-5556
+```
+
+The remaining target-phone check is immediate listing of a new uniquely titled v0.6 export saved directly into `Honor/Themes` while Themes is already running. The rename sequence is verified on the emulator; its effect on HONOR's indexing remains unverified. Providers without rename support retain direct saving and the manual refresh workaround.
+
+## 25 October 2026: user-confirmed icon application
+
+The user confirms that the v0.5 export applies correctly on both V5 displays, leaves wallpaper unchanged through icon customization, provides relevant recommendations across more apps and persists as expected. The wallpaper-free A control also applies icons. Launcher screenshots show applied artwork for A and the user's v0.5 export; they do not use identical scroll regions or necessarily identical assignments.
+
+A later exported pack appeared after force-stopping HONOR Themes and reopening it. The user reports that Peafowl does not require this workaround, and clarified that its completed file is manually moved into `Honor/Themes`. Immediate discovery remains unresolved; archive application is working for the tested exports. v0.6 adopts A's wallpaper-free layout, publishes completed saves by rename where supported, and adds a Themes app-info shortcut. The effect on HONOR discovery still requires target-phone verification.
+
 ## 25 October 2026: user-reported v0.5 device listing
 
 The user reports that a fresh v0.5 **My Magic Icons** export and all A/B/C import controls were initially absent, then appeared after restarting the target V5. Their HONOR Themes → My downloads → Icons screenshot shows all four plus Peafowl's original; My Magic Icons has the selection checkmark. Actual launcher icon changes are not shown and remain to be checked.
