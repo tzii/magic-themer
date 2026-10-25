@@ -2,7 +2,13 @@
 
 A free, offline Android prototype that creates icon themes from installed icon packs and edits supported local theme files. Target: **HONOR Magic V5, MagicOS 10.0.0.168 EU**.
 
-The supplied Peafowl `chicv6.hnt` worked on this phone, while exports edited by this app were absent from HONOR Themes. The actual edited files showed that saving rebuilt both ZIP layers and changed metadata and previews. v0.4 preserves untouched archive records, metadata and imported previews. Acceptance of the corrected files still needs a phone check; APK/emulator checks cannot establish HONOR Themes acceptance.
+On 25 October, the user confirmed that the v0.5 export **My Magic Icons** and all three import controls appeared in HONOR Themes after restarting the phone. Use that v0.5 export as the working baseline. Test A also appeared without wallpaper or a full base theme, so those modules are not required for listing in this test. Immediate discovery, actual launcher rendering and earlier edited-theme repairs remain separate checks; see [device results](docs/RESEARCH.md#25-october-follow-up-all-controls-listed-after-restart).
+
+## What v0.5 adds
+
+- New exports include a generated wallpaper module, `preview/`, `unlock/` and `wallpaper/` folder records, real timestamps and Peafowl's member order. A blank description is omitted. The v0.5 layout is now listed on the V5 after restart; the wallpaper-free A control is also listed. Keep the current exporter while checking icon application. Choosing **Customize → Icons** applies just the icons.
+- Choosing a pack replaces an untouched default theme name with the pack's name. Existing sessions retain their saved title; the user's v0.5 export named `My Magic Icons` is listed successfully, so that name alone is not a discovery blocker.
+- Apps with no matching artwork get suggestions for their kind: music, video, games, transport, maps, photos, chat, browser, mail, money, shopping, food, news and reading, notes, files, health, weather, travel and tools. The kind comes from the app's name and package words (including fused names such as Busitalia), its declared Android category, and whether it plays video or audio. Generic artwork such as `music` or `bus` comes first, then icons of well-known apps of that kind. Name and mapping matches always rank above these.
 
 ## What v0.4 adds
 
@@ -49,7 +55,7 @@ Local-only diagnostics are `dist/Chic V6 Header Test.hnt` (the untouched working
 2. Tap **Choose pack**. In **Apps**, use **Needs icon** to find gaps, tap an app and choose a suggested icon or search all artwork. Browse **Pack icons** for alternatives. In **Theme**, leave **Whole icon pack** on, or turn it off for an installed-app-only first test.
 3. Edit the theme name and keep **HONOR (.hnt)** selected for the first test. Tap **Save theme** and save to internal storage `HONOR/Themes` if that folder is available in the file picker. Otherwise save to Downloads and copy there with the phone's Files app.
 4. Open HONOR Themes → Me → My downloads, then Customize → Icons. Select the exported theme's icons.
-5. If it is absent, compare with the repaired file and consult [device testing](docs/DEVICE_TESTING.md). Keep the output and record where it was saved.
+5. If it is absent, close and reopen HONOR Themes, then restart the phone and check again. The user's v0.5 export and all three controls appeared after a restart. Keep the same file and record where it was saved; consult [device testing](docs/DEVICE_TESTING.md) if it is still missing.
 
 The user applies the theme in HONOR Themes. No public direct-apply API was located during this research. On some builds the importer may behave differently or be restricted.
 
@@ -81,7 +87,7 @@ The separate `:qa:iconpack` module is an original synthetic icon pack for emulat
 
 ## Limits and next milestones
 
-- MagicOS archive acceptance, automatic discovery and launcher icon rendering need verification on the exact EU phone/build.
+- Listing of the v0.5 export and A/B/C controls is confirmed on the target V5 after restart. Immediate discovery, actual launcher icon rendering and earlier edited-theme repairs still need verification.
 - HONOR themes an app only when its icon's resource package matches its installed package. Builds renamed after compilation, such as DroidDeck's AnTuTu, PUBG and Ludashi variants, keep their own icon under any theme. **Apps** marks them **HONOR can't theme**; see [research](docs/RESEARCH.md#8-october-icons-the-launcher-leaves-unthemed).
 - Only explicitly mapped or manually assigned icons are exported. Pack fallback masks, backgrounds and scale recipes are not applied to unmapped apps.
 - Package-level HONOR filenames mean one exported icon per app package. Multiple launcher activities cannot all have independent themed icons in this profile.
@@ -91,6 +97,6 @@ The separate `:qa:iconpack` module is an original synthetic icon pack for emulat
 - Import and export enforce icon, entry and byte limits. Import allows 256 MiB archives, 128 MiB members and 512 MiB aggregate expanded outer/inner data. New rendered icons retain a 64 MiB total PNG budget. Editing supports classic single-disk ZIP framing; ZIP64, encrypted, signed, prefixed or trailing-data archives are rejected when saving. Oversized or malformed archives are rejected.
 - Source research does not establish redistribution rights for third-party artwork. Keep pack-derived themes for your own use unless the creator allows sharing.
 
-Next milestone: check the raw-preserving title-only control and repaired six-icon copy on the V5, then a new v0.4 export. Full system and lock-screen authoring requires separate research after that check.
+Next milestone: use the v0.5 **My Magic Icons** export, select it through **Customize → Icons**, and verify mapped and manually assigned icons on both V5 displays. Preserve A/B/C and the Peafowl original locally as diagnostic references; they need not remain on the phone once application is confirmed. Test A is a candidate for simplifying the exporter later, after its icon application is checked. Full system and lock-screen authoring requires separate research.
 
 Research, primary sources and assumptions: [RESEARCH.md](docs/RESEARCH.md).

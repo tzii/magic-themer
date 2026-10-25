@@ -14,8 +14,8 @@ class IconSuggestionsTest {
     private fun mapping(pkg: String, activity: String, drawable: String) =
         IconMapping("ComponentInfo{$pkg/$activity}", pkg, activity, drawable)
 
-    private fun target(label: String, pkg: String = "dev.test.unrelated", activities: List<String> = emptyList()) =
-        ApplicationTarget(pkg, label, activities)
+    private fun target(label: String, pkg: String = "dev.test.unrelated", activities: List<String> = emptyList(),
+        categories: Set<AppCategory> = emptySet()) = ApplicationTarget(pkg, label, activities, categories = categories)
 
     @Test fun explicitLauncherAssociationOutranksOtherMappingsAndInferredNames() {
         val pkg = "com.example.calendar"
@@ -60,14 +60,15 @@ class IconSuggestionsTest {
     @Test fun fusedAppNameFindsOnlyArtworkContainingItsCompleteSeparatedName() {
         val data = pack(listOf("archive_tune_alt", "archive_tune_round", "archive_alt", "tune_alt", "archive_tuner_alt"))
         val suggestions = IconSuggestions(data).suggest(target("ArchiveTune"))
-        assertEquals(listOf("archive_tune_alt", "archive_tune_round"), suggestions.map { it.drawableName })
-        assertTrue(suggestions.all { it.reason == "Matches app name" })
+        // The name matches lead; "tune" then makes it a music app, never an archive one.
+        assertEquals(listOf("archive_tune_alt", "archive_tune_round", "tune_alt"), suggestions.map { it.drawableName })
+        assertEquals(listOf("Matches app name", "Matches app name", "Music icon"), suggestions.map { it.reason })
         assertTrue(data.mappings.isEmpty())
     }
 
     @Test fun fusedNameFallbackDoesNotDropMeaningfulAppNameWordsOrChangeBrandMatches() {
         val index = IconSuggestions(pack(listOf("archive_tune_alt", "youtube_alt", "you_alt", "tube_alt", "chat_gpt_alt")))
-        assertTrue(index.suggest(target("ArchiveTunePlus")).isEmpty())
+        assertEquals(listOf("Music icon"), index.suggest(target("ArchiveTunePlus")).map { it.reason })
         assertEquals(listOf("youtube_alt"), index.suggest(target("YouTube")).map { it.drawableName })
         assertEquals(listOf("chat_gpt_alt"), index.suggest(target("ChatGPT")).map { it.drawableName })
     }
@@ -93,6 +94,60 @@ class IconSuggestionsTest {
         assertTrue(index.suggest(target("Google Android App 123", "com.google.android.apps.unknown")).isEmpty())
         assertTrue(index.suggest(target("Amazon Shopping", "com.amazon.android.shopping")).isEmpty())
         assertTrue(index.suggest(target("Note", "dev.test.unrelated")).isEmpty())
+    }
+
+    private val mixedPack = listOf(
+        "music", "music_player", "spotify", "headphones", "youtube_music", "amazon_music",
+        "bus", "train_station", "moovit", "trenitalia", "business_suite",
+        "gamepad", "steam", "game_center", "joystick",
+        "video_player", "netflix", "vlc", "movies",
+        "calendar", "adobe_express", "notebooking",
+    )
+
+    @Test fun musicAppWithoutItsOwnIconGetsMusicArtwork() {
+        val index = IconSuggestions(pack(mixedPack, listOf(mapping("com.spotify.music", "com.spotify.music.MainActivity", "spotify"))))
+        val suggestions = index.suggest(target("ArchiveTune", "moe.rukamori.archivetune"), 12)
+        val names = suggestions.map { it.drawableName }
+        assertEquals("music", names.first())
+        assertTrue(names.indexOf("music_player") < names.indexOf("headphones"))
+        assertTrue(names.indexOf("headphones") < names.indexOf("spotify"))
+        assertTrue(names.containsAll(listOf("music_player", "youtube_music", "amazon_music", "spotify")))
+        assertTrue(names.none { it in setOf("bus", "steam", "netflix", "calendar", "adobe_express") })
+        assertEquals("Music icon", suggestions.first().reason)
+        assertEquals("Similar music app", suggestions.single { it.drawableName == "spotify" }.reason)
+    }
+
+    @Test fun fusedTransportNameFindsTransitArtworkButBusinessDoesNot() {
+        val index = IconSuggestions(pack(mixedPack))
+        val names = index.suggest(target("Busitalia Veneto", "net.pluservice.busitaliaveneto"), 12).map { it.drawableName }
+        assertEquals(listOf("bus", "train_station"), names.take(2))
+        assertTrue(names.containsAll(listOf("moovit", "trenitalia")))
+        assertFalse("business_suite" in names)
+        assertTrue(index.suggest(target("Business Suite", "com.example.business")).none { it.reason.contains("ransport") })
+    }
+
+    @Test fun gameAndVideoAppsGetTheirKindOfArtwork() {
+        val index = IconSuggestions(pack(mixedPack))
+        val games = index.suggest(target("GameNative", "app.gamenative"), 12).map { it.drawableName }
+        assertEquals(setOf("gamepad", "joystick", "game_center", "steam"), games.toSet())
+        val video = index.suggest(target("Nuvio", "com.nuvio.app"), 12).map { it.drawableName }
+        assertEquals(setOf("video_player", "movies", "netflix", "vlc"), video.toSet())
+        assertTrue(video.indexOf("video_player") < video.indexOf("netflix"))
+    }
+
+    @Test fun androidDeclaredCategoryWorksWithoutAnyNameHint() {
+        val index = IconSuggestions(pack(mixedPack))
+        assertTrue(index.suggest(target("Zorbly", "dev.test.zorbly")).isEmpty())
+        val video = index.suggest(target("Zorbly", "dev.test.zorbly", categories = setOf(AppCategory.VIDEO)), 12)
+        assertEquals(listOf("movies", "video_player"), video.take(2).map { it.drawableName })
+        assertTrue(video.all { it.reason == "Video icon" || it.reason == "Similar video app" })
+    }
+
+    @Test fun categoryLookAlikesNeverOutrankNameMatches() {
+        val index = IconSuggestions(pack(mixedPack + "archive_tune"))
+        val suggestions = index.suggest(target("ArchiveTune"), 12)
+        assertEquals("archive_tune", suggestions.first().drawableName)
+        assertTrue(suggestions.drop(1).all { it.score < suggestions.first().score })
     }
 
     @Test fun completeNameMatchesAreSafeEvenWhenTheirWordsAreOtherwiseTooGeneric() {

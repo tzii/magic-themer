@@ -1,5 +1,17 @@
 # Validation record
 
+## 25 October 2026: user-reported v0.5 device listing
+
+The user reports that a fresh v0.5 **My Magic Icons** export and all A/B/C import controls were initially absent, then appeared after restarting the target V5. Their HONOR Themes → My downloads → Icons screenshot shows all four plus Peafowl's original; My Magic Icons has the selection checkmark. Actual launcher icon changes are not shown and remain to be checked.
+
+Inspection of the local controls confirms that A has no wallpaper or full base modules, B adds wallpaper, and C retains the full base. Listing therefore does not require wallpaper or the full base in this comparison. Delayed discovery is a supported explanation, but the specific indexing mechanism and the outcome for older rejected files remain unverified. Keep the current v0.5 export as the working baseline and retain the controls locally.
+
+This follow-up changes documentation only. It does not rerun or supersede the historical v0.4 build/runtime checks below.
+
+The existing local v0.5 JVM reports from 25 October contain 88 tests: 86 passed, zero failures/errors, and two optional supplied-theme tests skipped. Those two supplied-file checks were not run for v0.5.
+
+## Historical v0.4 validation
+
 Completed 7 October 2026 for **0.4.0**, application ID `dev.magicthemer`. This debug-signed prototype targets **Magic V5 / MagicOS 10.0.0.168 EU**. The supplied untouched Peafowl theme worked on the phone; two actual app-edited outputs did not appear. Acceptance of v0.4 controls and exports remains a phone test.
 
 Earlier records: [v0.3](VALIDATION-0.3.md), [v0.2](VALIDATION-0.2.md). APKs, personal themes and generated evidence in `dist/` and `qa/output/` are local-only and ignored by Git. No supplied artwork is included in the APK or source repository.

@@ -6,7 +6,7 @@ Research date: 7 October 2026. Target supplied by user: HONOR Magic V5, MagicOS 
 
 An independent local icon-pack-to-theme converter is feasible using ordinary Android APIs. The engineering path is: discover an installed pack → read its public resources and component mappings → choose one drawable per target package → rasterize icons → package a candidate HONOR theme → let the user import and apply its icons in HONOR Themes.
 
-The user supplied a rejected Magic Themer export and a working Peafowl theme from the target phone. Their comparison now provides a working archive profile, while acceptance of the corrected minimal export still needs a phone test. No target V5 was connected during development. A successful emulator export must not be described as successful MagicOS application.
+The user supplied a previously unlisted Magic Themer export and a working Peafowl theme from the target phone. On 25 October, the user confirmed that a v0.5 export and all three import controls appeared in HONOR Themes after a phone restart, including the wallpaper-free A control. Listing is now established for those files; launcher rendering and the earlier edited-theme repairs remain separate checks. No target V5 was connected during development; the new listing evidence comes from the user's phone report and screenshot, not the emulator.
 
 ## Evidence and confidence
 
@@ -34,7 +34,7 @@ Background work avoids rendering the entire pack for a preview. Visual lists use
 
 ## Candidate archive profile
 
-The writer creates an outer theme ZIP containing `description.xml`, an extensionless `icons` ZIP, an empty `unlock/theme.xml` declaration and generated preview JPEGs. The inner ZIP contains `com.example.app.png` files at its root. New themes do not include wallpaper, font or system UI artwork; the editor preserves those modules from imported files.
+The writer creates an outer theme ZIP containing `description.xml`, an extensionless `icons` ZIP, an empty `unlock/theme.xml` declaration and generated preview JPEGs. The inner ZIP contains `com.example.app.png` files at its root. v0.5 also includes a generated wallpaper and directory records; it does not bundle font or system UI artwork. The editor preserves existing modules from imported files. The wallpaper-free A control is also listed after restart, so wallpaper is not established as a listing requirement.
 
 v0.3 uses `HwTheme` version `12` for both extension choices, with title/title-cn, author/designer and Default font declarations. The `.hwt` option changes the extension, not the metadata profile. Ordinary imported themes preserve their original profile. A narrow opt-in repair upgrades recognizable older minimal Magic Themer `HnTheme` version `8.0.0` exports.
 
@@ -96,9 +96,25 @@ DroidDeck's GPL [release variants](https://github.com/Droid-Deck/DroidDeck) chan
 
 MagicOS 10 is an EMUI descendant, and the unmasked DroidDeck icon is consistent with the same check; HONOR's current source is not public. Magic Themer now reads each launcher icon's resource package and labels mismatched builds **HONOR can't theme**. The standard `com.droiddeck.launcher` build can be themed. AOSP's [`PackageInfoUtils`](https://github.com/aosp-mirror/platform_frameworks_base/blob/main/services/core/java/com/android/server/pm/parsing/PackageInfoUtils.java) fills `ActivityInfo.enabled` from the manifest only, so app discovery no longer discards launcher aliases that are enabled at runtime and were previously absent from **Needs icon**.
 
+## 25 October: new export absent, Peafowl export listed
+
+A fresh v0.4 full-pack export (`enix Icons magic themer.hnt`, 5,021 icons) was absent from My downloads → Icons, while Peafowl's export of the same pack (`enixicon.hnt`) was listed. ZIP flags, compression, Unix attributes, 192 px RGBA icons, HwTheme 12 metadata and 720×1280 previews match. The differences are: Peafowl copies a complete base theme (wallpaper, unlock, 120+ system modules, `icon_mask.png`, flat aliases and dynamic calendar assets); it writes STORED folder records (`preview/`, `unlock/`, `wallpaper/`), real timestamps rather than 1980-01-01, previews first and description.xml next to icons, and no empty `briefInfo`. Our export also kept the default title `My Magic Icons`, the internal title of earlier rejected tests.
+
+The [EMUI 8 theme specification](https://developer.huawei.com/consumer/en/doc/themes-specification8) lists wallpaper, icons, preview and description.xml as theme components, and community guides describe the same layout. Neither establishes what MagicOS 10 requires. v0.5 exports therefore add a generated dark wallpaper module, folder records, real timestamps and Peafowl's member order, omit a blank description and name new themes after the selected pack. Three local bisection files in `dist/import-tests/` use the failed export's icons: **A** packaging and title only, **B** A plus wallpaper (the v0.5 layout) and **C** Peafowl's archive with only icons and title replaced.
+
+## 25 October follow-up: all controls listed after restart
+
+The user reported that the themes were initially absent, then all appeared after restarting the V5. The HONOR Themes → My downloads → Icons screenshot shows **My Magic Icons**, **MT test A packaging**, **MT test B wallpaper**, **MT test C full base** and Peafowl's **enix icon**. The user identifies My Magic Icons as a new v0.5 APK export; it has the selection checkmark. The screenshot does not show the launcher, so it does not establish which app icons changed.
+
+Inspection of the local controls confirms that A has eight outer entries and no wallpaper or full system modules; B has eleven entries including wallpaper; C retains the full 143-entry base. Their listing establishes that neither wallpaper nor the full base is necessary for listing these controls on this device. My Magic Icons also shows that the old default title is usable in this run. Directory records, timestamps and the other packaging changes were not isolated from one another.
+
+The result is consistent with delayed theme discovery or indexing refreshed by restart. It does not prove the exact cache mechanism, that restart is always necessary, or that the original v0.4 export and earlier edited files would now be accepted. The previous wallpaper hypothesis is no longer supported as an explanation for missing listings.
+
+Use the current v0.5 export as the working baseline and keep the exporter unchanged while checking actual icon application. Retain A/B/C and the Peafowl original locally as diagnostic evidence; they are not additional themes the user needs to maintain on the phone. A is a possible smaller export profile for a later application check. Do not adopt C's full third-party base as the app's export template.
+
 ## Scope after the device test
 
-1. Confirm `.hnt` or `.hwt` acceptance, listing, persistence after reboot and actual icon changes on both V5 displays.
+1. `.hnt` listing after restart is confirmed for the v0.5 export and A/B/C controls. Next confirm actual icon changes on both V5 displays and persistence after another restart; `.hwt` remains untested on the phone.
 2. Add compatibility profiles only from working archive evidence; keep the original working theme available for comparison.
 3. Validate full mapped-pack export, drawable.xml alternatives and existing-theme edits on the phone; retain original/input files for comparison.
 4. Implement unmapped-app fallback composition and tint controls as separate verified features.

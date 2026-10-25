@@ -26,6 +26,7 @@ internal object ThemeZip {
     private const val CENTRAL = 0x02014b50L
     private const val END = 0x06054b50L
     private const val DESCRIPTOR = 0x08074b50L
+    private const val DOS_EPOCH = 33L shl 16
     private data class Entry(val name: String, val central: ByteArray, val local: ByteArray, val offset: Long, var end: Long = 0)
     private data class Archive(val entries: List<Entry>, val comment: ByteArray)
     private data class Payload(val file: File, val size: Long, val crc: Long)
@@ -70,14 +71,16 @@ internal object ThemeZip {
         } finally { staged.forEach { it.delete() } }
     }
 
-    fun create(output: OutputStream, entries: Map<String, Content>, tempDirectory: File? = null) {
+    /** [modifiedMillis] null keeps the reproducible 1980 DOS epoch timestamp. */
+    fun create(output: OutputStream, entries: Map<String, Content>, tempDirectory: File? = null, modifiedMillis: Long? = null) {
         require(entries.size <= MAX_ENTRIES) { "Too many ZIP members." }
+        val dosTime = modifiedMillis?.let(::dosDateTime) ?: DOS_EPOCH
         val staged = ArrayList<File>()
         try {
             val sink = BoundedOutput(output)
             val central = entries.map { (name, content) ->
                 val offset = sink.count
-                changed(freshEntry(name), content, tempDirectory, sink, staged).also { put32(it, 42, offset) }
+                changed(freshEntry(name, dosTime), content, tempDirectory, sink, staged).also { put32(it, 42, offset) }
             }
             finish(sink, central, byteArrayOf())
         } finally { staged.forEach { it.delete() } }
@@ -158,20 +161,29 @@ internal object ThemeZip {
         return Archive(entries, tail.copyOfRange(endIndex + 22, tail.size))
     }
 
-    private fun freshEntry(name: String): Entry {
+    private fun freshEntry(name: String, dosTime: Long = DOS_EPOCH): Entry {
         val encoded = name.toByteArray(Charsets.UTF_8)
         require(encoded.size in 1..512 && decodeName(encoded, 0x800) == name) { "Invalid ZIP member name." }
         val directory = name.endsWith('/')
         val flags = if (directory) 0x800 else 0x806
         val method = if (directory) 0 else 8
+        val needed = if (directory) 10 else 20
         val local = ByteArray(30 + encoded.size)
-        put32(local, 0, LOCAL); put16(local, 4, 20); put16(local, 6, flags); put16(local, 8, method)
-        put16(local, 12, 33); put16(local, 26, encoded.size); encoded.copyInto(local, 30)
+        put32(local, 0, LOCAL); put16(local, 4, needed); put16(local, 6, flags); put16(local, 8, method)
+        put32(local, 10, dosTime); put16(local, 26, encoded.size); encoded.copyInto(local, 30)
         val central = ByteArray(46 + encoded.size)
-        put32(central, 0, CENTRAL); put16(central, 4, 0x0333); put16(central, 6, 20); put16(central, 8, flags)
-        put16(central, 10, method); put16(central, 14, 33); put16(central, 28, encoded.size)
+        put32(central, 0, CENTRAL); put16(central, 4, 0x0333); put16(central, 6, needed); put16(central, 8, flags)
+        put16(central, 10, method); put32(central, 12, dosTime); put16(central, 28, encoded.size)
         put32(central, 38, if (directory) 0x41c00000L else 0x81800000L); encoded.copyInto(central, 46)
         return Entry(name, central, local, 0)
+    }
+
+    /** Local wall-clock time in MS-DOS format: time in the low word, date in the high word. */
+    internal fun dosDateTime(millis: Long): Long {
+        val time = java.time.Instant.ofEpochMilli(millis).atZone(java.time.ZoneId.systemDefault()).toLocalDateTime()
+        if (time.year !in 1980..2107) return DOS_EPOCH
+        val date = ((time.year - 1980) shl 9) or (time.monthValue shl 5) or time.dayOfMonth
+        return (date.toLong() shl 16) or ((time.hour shl 11) or (time.minute shl 5) or (time.second / 2)).toLong()
     }
 
     private fun changed(entry: Entry, content: Content, directory: File?, output: OutputStream, staged: MutableList<File>): ByteArray {

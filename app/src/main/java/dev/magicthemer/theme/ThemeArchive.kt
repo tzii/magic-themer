@@ -12,6 +12,12 @@ import java.nio.charset.StandardCharsets
  * the user's MagicOS 10 EU Themes app accepts. The archive's `icons`
  * entry is itself an extensionless ZIP with flat package-name PNG entries.
  * The schema version is a theme format version, not the phone's OS version.
+ *
+ * The outer layout mirrors a Peafowl export that the same phone lists under
+ * My downloads: previews, unlock and wallpaper modules with their folder
+ * records, then description.xml and icons, all with real timestamps. The v0.5
+ * export and a wallpaper-free control were listed after a phone restart;
+ * requirements for the other packaging details remain unverified.
  */
 object ThemeArchive {
     const val SCHEMA_VERSION = "12"
@@ -35,14 +41,17 @@ object ThemeArchive {
         tempDirectory: File? = null,
         designer: String = "Magic Themer",
         briefInfo: String? = null,
+        wallpaper: ByteArray? = null,
+        modifiedMillis: Long? = System.currentTimeMillis(),
     ) {
         require(extension == "hnt" || extension == "hwt") { "Choose the hnt or hwt theme format." }
         require(title.isNotBlank() && title.length <= 64) { "Theme title must contain 1–64 characters." }
         require(sourceLabel.isNotBlank() && sourceLabel.length <= 256) { "Icon pack label must contain 1–256 characters." }
         require(isXmlText(title) && isXmlText(sourceLabel)) { "Theme metadata contains invalid XML characters." }
-        val resolvedBriefInfo = briefInfo ?: "Icons converted locally from $sourceLabel."
+        // A blank description is omitted, as in working themes, rather than written as an empty element.
+        val resolvedBriefInfo = (briefInfo ?: "Icons converted locally from $sourceLabel.").takeIf { it.isNotBlank() }
         require(designer.length <= 128 && isXmlText(designer)) { "Designer must contain up to 128 valid XML characters." }
-        require(resolvedBriefInfo.length <= 4096 && isXmlText(resolvedBriefInfo)) { "Description must contain up to 4096 valid XML characters." }
+        require(resolvedBriefInfo == null || resolvedBriefInfo.length <= 4096 && isXmlText(resolvedBriefInfo)) { "Description must contain up to 4096 valid XML characters." }
         require(icons.isNotEmpty() && icons.size <= MAX_ICON_COUNT) { "Choose between 1 and $MAX_ICON_COUNT icons." }
 
         val seen = HashSet<String>()
@@ -57,7 +66,7 @@ object ThemeArchive {
             totalBytes += icon.png.size
             require(totalBytes <= MAX_TOTAL_ICON_BYTES) { "Icon data exceeds 64 MiB." }
         }
-        listOfNotNull(preview, iconsPreview).forEach {
+        listOfNotNull(preview, iconsPreview, wallpaper).forEach {
             require(it.size in 3..MAX_PREVIEW_BYTES) { "Preview exceeds the supported JPEG size." }
             require(it[0] == 0xff.toByte() && it[1] == 0xd8.toByte() && it[2] == 0xff.toByte()) {
                 "Preview is not a JPEG."
@@ -73,8 +82,7 @@ object ThemeArchive {
     <version>$SCHEMA_VERSION</version>
     <font>Default</font>
     <font-cn>Default</font-cn>
-    <briefInfo>${xmlEscape(resolvedBriefInfo)}</briefInfo>
-</HwTheme>
+${resolvedBriefInfo?.let { "    <briefInfo>${xmlEscape(it)}</briefInfo>\n" }.orEmpty()}</HwTheme>
 """.toByteArray(StandardCharsets.UTF_8)
 
         // Keep the complete inner archive on disk instead of retaining a second
@@ -84,20 +92,27 @@ object ThemeArchive {
             nestedIcons.outputStream().use { stream ->
                 ThemeZip.create(stream, icons.sortedBy { it.packageName }.associate { icon ->
                     "${icon.packageName}.png" to ThemeZip.Bytes(icon.png)
-                }, tempDirectory)
+                }, tempDirectory, modifiedMillis)
             }
             val unlockPreview = iconsPreview ?: preview
             validateCompletedArchive(nestedIcons.length(), totalBytes, description.size, preview?.size ?: 0,
-                iconsPreview?.size ?: 0, unlockPreview?.size ?: 0)
-            val members = linkedMapOf<String, ThemeZip.Content>(
-                "description.xml" to ThemeZip.Bytes(description),
-                "unlock/theme.xml" to ThemeZip.Bytes("<HWTheme />".toByteArray(StandardCharsets.UTF_8)),
-                "icons" to ThemeZip.FileContent(nestedIcons),
-            )
-            preview?.let { members["preview/icon_small.jpg"] = ThemeZip.Bytes(it) }
+                iconsPreview?.size ?: 0, unlockPreview?.size ?: 0, 2L * (wallpaper?.size ?: 0))
+            val folder = ThemeZip.Bytes(ByteArray(0))
+            val members = linkedMapOf<String, ThemeZip.Content>()
             iconsPreview?.let { members["preview/preview_icons_0.jpg"] = ThemeZip.Bytes(it) }
             unlockPreview?.let { members["preview/preview_unlock_0.jpg"] = ThemeZip.Bytes(it) }
-            output.use { ThemeZip.create(it, members, tempDirectory) }
+            preview?.let { members["preview/icon_small.jpg"] = ThemeZip.Bytes(it) }
+            if (members.isNotEmpty()) members["preview/"] = folder
+            members["unlock/theme.xml"] = ThemeZip.Bytes("<HWTheme />".toByteArray(StandardCharsets.UTF_8))
+            members["unlock/"] = folder
+            wallpaper?.let {
+                members["wallpaper/home_wallpaper_0.jpg"] = ThemeZip.Bytes(it)
+                members["wallpaper/unlock_wallpaper_0.jpg"] = ThemeZip.Bytes(it)
+                members["wallpaper/"] = folder
+            }
+            members["description.xml"] = ThemeZip.Bytes(description)
+            members["icons"] = ThemeZip.FileContent(nestedIcons)
+            output.use { ThemeZip.create(it, members, tempDirectory, modifiedMillis) }
         } finally {
             nestedIcons.delete()
         }
@@ -111,10 +126,11 @@ object ThemeArchive {
         previewBytes: Int,
         iconsPreviewBytes: Int,
         unlockPreviewBytes: Int = 0,
+        wallpaperBytes: Long = 0,
     ) {
         require(innerBytes in 0..ThemeEditor.MAX_MEMBER_BYTES) { "Packed icons ZIP exceeds 128 MiB; select fewer icons." }
-        require(rawIconBytes in 0..MAX_TOTAL_ICON_BYTES && descriptionBytes >= 0 && previewBytes >= 0 && iconsPreviewBytes >= 0 && unlockPreviewBytes >= 0) { "Invalid packed theme size." }
-        val outerMemberBytes = descriptionBytes.toLong() + previewBytes + iconsPreviewBytes + unlockPreviewBytes + 11
+        require(rawIconBytes in 0..MAX_TOTAL_ICON_BYTES && descriptionBytes >= 0 && previewBytes >= 0 && iconsPreviewBytes >= 0 && unlockPreviewBytes >= 0 && wallpaperBytes >= 0) { "Invalid packed theme size." }
+        val outerMemberBytes = descriptionBytes.toLong() + previewBytes + iconsPreviewBytes + unlockPreviewBytes + wallpaperBytes + 11
         require(rawIconBytes + outerMemberBytes <= ThemeEditor.MAX_EXPANDED_BYTES - innerBytes) {
             "Packed theme data exceeds the 512 MiB import limit; select fewer icons or use smaller previews."
         }

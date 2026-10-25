@@ -34,7 +34,7 @@ class ThemeArchiveTest {
             ThemeIcon("org.example.zed", png), ThemeIcon("com.example.alpha", png)
         ))
         val outer = unzip(result)
-        assertEquals(listOf("description.xml", "unlock/theme.xml", "icons"), outer.keys.toList())
+        assertEquals(listOf("unlock/theme.xml", "unlock/", "description.xml", "icons"), outer.keys.toList())
         val description = DocumentBuilderFactory.newInstance().apply {
             setFeature("http://apache.org/xml/features/disallow-doctype-decl", true)
         }.newDocumentBuilder().parse(ByteArrayInputStream(outer.getValue("description.xml")))
@@ -103,14 +103,46 @@ class ThemeArchiveTest {
         assertFalse(entries.keys.any { it.contains("wallpaper") || it.startsWith("com.") || it.startsWith("framework-") })
     }
 
-    @Test fun ordinaryZipCompressionAndTimestampAreFixed() {
-        ZipInputStream(ByteArrayInputStream(export())).use { zip ->
-            while (true) {
-                val entry = zip.nextEntry ?: break
-                assertEquals(ZipEntry.DEFLATED, entry.method)
-                assertEquals(1980, Instant.ofEpochMilli(entry.time).atZone(ZoneId.systemDefault()).year)
-                zip.readBytes()
+    @Test fun filesAreDeflatedFoldersStoredAndTimestampsReal() {
+        val modified = Instant.parse("2026-10-25T11:44:52Z").toEpochMilli()
+        val stamp = Instant.ofEpochMilli(modified).atZone(ZoneId.systemDefault()).toLocalDateTime().withNano(0)
+        val outer = ByteArrayOutputStream().also {
+            ThemeArchive.write(it, "Example", "Pack", listOf(ThemeIcon("com.example.app", png)), "hnt", modifiedMillis = modified)
+        }.toByteArray()
+        fun check(bytes: ByteArray, nested: Boolean) {
+            ZipInputStream(ByteArrayInputStream(bytes)).use { zip ->
+                while (true) {
+                    val entry = zip.nextEntry ?: break
+                    assertEquals(if (entry.isDirectory) ZipEntry.STORED else ZipEntry.DEFLATED, entry.method)
+                    assertEquals(stamp.withSecond(stamp.second / 2 * 2), entry.timeLocal)
+                    val data = zip.readBytes()
+                    if (!nested && entry.name == "icons") check(data, true)
+                }
             }
+        }
+        check(outer, false)
+        ZipInputStream(ByteArrayInputStream(export())).use { zip ->
+            while (true) { assertEquals(1980, (zip.nextEntry ?: break).timeLocal.year); zip.readBytes() }
+        }
+    }
+
+    @Test fun wallpaperModuleAndBlankDescriptionFollowTheWorkingLayout() {
+        val jpeg = byteArrayOf(0xff.toByte(), 0xd8.toByte(), 0xff.toByte(), 0xd9.toByte())
+        val wallpaper = jpeg + byteArrayOf(7)
+        val output = ByteArrayOutputStream()
+        ThemeArchive.write(output, "Example", "Pack", listOf(ThemeIcon("com.example.app", png)), "hnt",
+            preview = jpeg, iconsPreview = jpeg, briefInfo = " ", wallpaper = wallpaper, modifiedMillis = null)
+        val entries = unzip(output.toByteArray())
+        assertEquals(listOf(
+            "preview/preview_icons_0.jpg", "preview/preview_unlock_0.jpg", "preview/icon_small.jpg", "preview/",
+            "unlock/theme.xml", "unlock/", "wallpaper/home_wallpaper_0.jpg", "wallpaper/unlock_wallpaper_0.jpg", "wallpaper/",
+            "description.xml", "icons",
+        ), entries.keys.toList())
+        assertArrayEquals(wallpaper, entries.getValue("wallpaper/home_wallpaper_0.jpg"))
+        assertArrayEquals(wallpaper, entries.getValue("wallpaper/unlock_wallpaper_0.jpg"))
+        assertFalse(entries.getValue("description.xml").decodeToString().contains("briefInfo"))
+        rejects {
+            ThemeArchive.write(ByteArrayOutputStream(), "Example", "Pack", listOf(ThemeIcon("com.example.app", png)), "hnt", wallpaper = png)
         }
     }
 
@@ -209,7 +241,7 @@ class ThemeArchiveTest {
         iconsPreview: ByteArray? = null,
         tempDirectory: File? = null,
     ): ByteArray = ByteArrayOutputStream().also {
-        ThemeArchive.write(it, title, source, icons, extension, preview, iconsPreview, tempDirectory)
+        ThemeArchive.write(it, title, source, icons, extension, preview, iconsPreview, tempDirectory, modifiedMillis = null)
     }.toByteArray()
 
     private fun unzip(bytes: ByteArray): Map<String, ByteArray> = linkedMapOf<String, ByteArray>().also { result ->

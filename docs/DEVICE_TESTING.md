@@ -1,10 +1,18 @@
 # Magic V5 compatibility test
 
-Target: MagicOS 10.0.0.168 EU. The supplied Peafowl theme worked, while the app-edited `chicv6-edited.hnt` and `ChicIcons-edited.hnt` did not appear. Their actual ZIP headers differ from the working file. v0.4 preserves original framing and previews during working-theme edits. Acceptance still needs a physical device check. Expected APK: `dist/Magic-Themer-0.4.0-debug.apk`.
+Target: MagicOS 10.0.0.168 EU. On 25 October the user confirmed that **My Magic Icons**, created with v0.5, and all three A/B/C controls appeared under My downloads → Icons after restarting the phone. Use `dist/Magic-Themer-0.5.0-debug.apk` and that v0.5 export as the current baseline. Launcher rendering and earlier v0.4 edited-theme repairs remain separate checks.
 
 The named APK and personal `.hnt` files under `dist/` are local-only artifacts ignored by Git; a repository clone does not contain them. Build the APK using the README instructions and supply your own local theme files for the following comparisons.
 
-## Compare the working original and two controls
+## Current baseline and next check
+
+Keep **My Magic Icons** from v0.5 on the phone. It is already selected in the supplied Icons screenshot. Through **Customize → Icons**, apply it if needed, then inspect several mapped apps and a manually assigned icon on both displays. Check persistence after restart. A listing or selection checkmark alone does not show the resulting launcher artwork.
+
+Preserve A/B/C and Peafowl's original locally. They can be removed from the phone once the v0.5 export's application is confirmed; no deletion is needed for testing. A's successful listing without wallpaper or full system modules rules those out as requirements for this listing test. Keep the v0.5 exporter unchanged until application is checked; A can then test a simpler layout.
+
+For a future export that does not appear, reopen HONOR Themes, then restart the phone and check the same file again before treating it as an archive rejection. Record whether it appears before or after restart. This worked in the reported run; immediate discovery and the underlying indexing mechanism are still unverified.
+
+## Earlier v0.4 controls, not yet retested
 
 Keep the untouched `chicv6.hnt` available. Copy these files into the same folder and use the same import route that accepts that original:
 

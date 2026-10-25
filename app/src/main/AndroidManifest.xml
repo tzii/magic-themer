@@ -64,6 +64,18 @@
       <action android:name="android.intent.action.MAIN" />
       <category android:name="com.fede.launcher.THEME_ICONPACK" />
     </intent>
+    <!-- Media handlers suggest music or video artwork for apps without a matching icon. -->
+    <intent>
+      <action android:name="android.intent.action.VIEW" />
+      <data android:mimeType="video/*" />
+    </intent>
+    <intent>
+      <action android:name="android.intent.action.VIEW" />
+      <data android:mimeType="audio/*" />
+    </intent>
+    <intent>
+      <action android:name="android.media.browse.MediaBrowserService" />
+    </intent>
     <package android:name="com.hihonor.android.thememanager" />
     <package android:name="com.huawei.android.thememanager" />
   </queries>

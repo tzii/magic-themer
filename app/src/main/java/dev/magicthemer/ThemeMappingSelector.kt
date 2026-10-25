@@ -1,5 +1,6 @@
 package dev.magicthemer
 
+import dev.magicthemer.icons.AppCategory
 import dev.magicthemer.icons.IconMapping
 
 data class ApplicationTarget(
@@ -8,6 +9,8 @@ data class ApplicationTarget(
     val activities: List<String>,
     /** Package named by the launcher icon's resource table; null when unknown. */
     val resourcePackage: String? = null,
+    /** Kinds Android reports for the app: declared category, games, media players. */
+    val categories: Set<AppCategory> = emptySet(),
 ) {
     /**
      * HONOR's theme engine registers an icon under the installed package but

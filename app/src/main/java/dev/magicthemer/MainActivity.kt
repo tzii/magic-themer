@@ -3,13 +3,16 @@ package dev.magicthemer
 import android.app.Activity
 import android.content.Intent
 import android.content.pm.ActivityInfo
+import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.LinearGradient
 import android.graphics.Paint
 import android.graphics.Rect
+import android.graphics.Shader
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
@@ -53,6 +56,7 @@ import com.google.android.material.tabs.TabLayout
 import com.google.android.material.textfield.MaterialAutoCompleteTextView
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
+import dev.magicthemer.icons.AppCategory
 import dev.magicthemer.icons.IconMapping
 import dev.magicthemer.icons.IconPack
 import dev.magicthemer.icons.IconPackRepository
@@ -279,7 +283,7 @@ class MainActivity : AppCompatActivity() {
         val themeScroll = ScrollView(this).apply { isFillViewport = true }
         val themePage = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(20), dp(16), dp(20), dp(20)) }
         themeScroll.addView(themePage)
-        titleInput = editorField(themePage, "Theme name", 64, false).apply { setText(saved?.getString("title") ?: preferences.getString("title", "My Magic Icons")) }
+        titleInput = editorField(themePage, "Theme name", 64, false).apply { setText(saved?.getString("title") ?: preferences.getString("title", DEFAULT_TITLE)) }
         designerInput = editorField(themePage, "Designer", 128, false).apply { setText(saved?.getString("designer") ?: preferences.getString("designer", "Magic Themer")) }
         briefInput = editorField(themePage, "Description", 4096, true).apply { setText(saved?.getString("brief") ?: preferences.getString("brief", "")) }
         repairCompatibility = MaterialSwitch(this).apply {
@@ -399,12 +403,40 @@ class MainActivity : AppCompatActivity() {
         // The query already omits disabled components. ActivityInfo.enabled is only the
         // manifest default, so it would hide launcher aliases enabled at runtime, the
         // usual way apps switch icons, and those apps would never be counted.
+        val kinds = mediaCategories()
         return rows.filter { it.activityInfo?.applicationInfo?.enabled == true }
             .groupBy { it.activityInfo.packageName }.map { (pkg, matches) ->
                 val info = matches.first().activityInfo
                 ApplicationTarget(pkg, info.applicationInfo.loadLabel(packageManager).toString(), matches.map { it.activityInfo.name }.distinct(),
-                    iconResourcePackage(info))
+                    iconResourcePackage(info), declaredCategories(info.applicationInfo) + kinds[pkg].orEmpty())
             }.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.label })
+    }
+
+    private fun declaredCategories(info: ApplicationInfo): Set<AppCategory> {
+        @Suppress("DEPRECATION")
+        val game = info.flags and ApplicationInfo.FLAG_IS_GAME != 0
+        return setOfNotNull(AppCategory.fromAndroid(info.category), AppCategory.GAMES.takeIf { game })
+    }
+
+    /** Media players reveal their kind through the intents they handle, even without a declared category. */
+    private fun mediaCategories(): Map<String, Set<AppCategory>> {
+        fun activities(intent: Intent) = if (Build.VERSION.SDK_INT >= 33) packageManager.queryIntentActivities(intent, PackageManager.ResolveInfoFlags.of(0))
+            else { @Suppress("DEPRECATION") packageManager.queryIntentActivities(intent, 0) }
+        fun viewers(type: String) = runCatching {
+            activities(Intent(Intent.ACTION_VIEW).setDataAndType(android.net.Uri.parse("content://dev.magicthemer/media"), type))
+                .mapNotNullTo(hashSetOf()) { it.activityInfo?.packageName }
+        }.getOrDefault(emptySet())
+        val browsers = runCatching {
+            val intent = Intent("android.media.browse.MediaBrowserService")
+            (if (Build.VERSION.SDK_INT >= 33) packageManager.queryIntentServices(intent, PackageManager.ResolveInfoFlags.of(0))
+            else { @Suppress("DEPRECATION") packageManager.queryIntentServices(intent, 0) }).mapNotNullTo(hashSetOf()) { it.serviceInfo?.packageName }
+        }.getOrDefault(emptySet())
+        val video = viewers("video/*")
+        val result = HashMap<String, MutableSet<AppCategory>>()
+        video.forEach { result.getOrPut(it) { hashSetOf() } += AppCategory.VIDEO }
+        // A player that opens both is usually a video player; audio-only handlers and media browsers play music.
+        (viewers("audio/*") - video + browsers).forEach { result.getOrPut(it) { hashSetOf() } += AppCategory.MUSIC }
+        return result
     }
 
     /** The package HONOR's theme engine compares with the installed package; null if unknown. */
@@ -467,6 +499,8 @@ class MainActivity : AppCompatActivity() {
                 failedIcons.removeIf { it.startsWith("pack:${pack.packageName}:") }
                 packData = data
                 if (document == null) restoreSession()
+                // Use the selected pack as the default name without replacing a custom title.
+                if (document == null && titleInput.text.toString().trim() == DEFAULT_TITLE) titleInput.setText(pack.label.trim().take(64).ifBlank { DEFAULT_TITLE })
                 persist(); refreshUi()
                 setBusy(false, if (document == null) "${data.drawables.size} icons ready to browse." else "Pack loaded. Apply it explicitly or choose individual icons.")
             }
@@ -649,7 +683,7 @@ class MainActivity : AppCompatActivity() {
         visualSheet("Icon for ${target.label}", target.packageName, true,
             items = { query -> searchIcons(data, query).map { VisualItem(it, friendlyName(it), "", "pack:${data.pack.packageName}:$it") } },
             suggested = { query ->
-                suggestionIndexes[data.pack.packageName]?.suggest(target).orEmpty()
+                suggestionIndexes[data.pack.packageName]?.suggest(target, 12).orEmpty()
                     .filter { it.drawableName !in failedPackNames(data) && query.score(listOf(searchText(it.drawableName), searchText(it.label))) != null }
                     .map { VisualItem(it.drawableName, it.label, it.reason, "pack:${data.pack.packageName}:${it.drawableName}") }
             },
@@ -871,7 +905,7 @@ class MainActivity : AppCompatActivity() {
         document = null; appliedPack = null; choices.clear(); removedPackages.clear()
         old?.let { ThemeEditor.close(it); it.sourceFile.delete() }
         ready = false
-        titleInput.setText("My Magic Icons"); designerInput.setText("Magic Themer"); briefInput.setText("")
+        titleInput.setText(DEFAULT_TITLE); designerInput.setText("Magic Themer"); briefInput.setText("")
         wholePack.isChecked = true; replaceIcons.isChecked = false
         repairCompatibility.isChecked = true
         ready = true
@@ -954,6 +988,7 @@ class MainActivity : AppCompatActivity() {
                     if (source == null) ThemeArchive.write(
                         stream, title, sourceLabel, replacements.map { ThemeIcon(it.key, it.value) }, format,
                         preview = preview, iconsPreview = iconsPreview, tempDirectory = themeWorkDir, designer = designer, briefInfo = brief,
+                        wallpaper = createWallpaper(1080, 2400),
                     ) else ThemeEditor.write(source, stream, title, designer, brief, replacements, removed, replaceAll, preview, iconsPreview,
                         upgradeMinimalProfile = repair)
                 }
@@ -974,6 +1009,18 @@ class MainActivity : AppCompatActivity() {
             } catch (failure: Exception) { output.delete(); throw failure }
             finally { previewIcons.forEach { it.recycle() } }
         }
+    }
+
+    /** Retained in the v0.5 layout; the wallpaper-free control is also listed on the phone. */
+    private fun createWallpaper(width: Int, height: Int): ByteArray {
+        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        try {
+            val paint = Paint().apply {
+                shader = LinearGradient(0f, 0f, 0f, height.toFloat(), Color.rgb(28, 32, 44), Color.rgb(8, 10, 16), Shader.TileMode.CLAMP)
+            }
+            Canvas(bitmap).drawRect(0f, 0f, width.toFloat(), height.toFloat(), paint)
+            return ByteArrayOutputStream().use { stream -> check(bitmap.compress(Bitmap.CompressFormat.JPEG, 90, stream)); stream.toByteArray() }
+        } finally { bitmap.recycle() }
     }
 
     private fun createPreview(title: String, icons: List<Bitmap>, width: Int, height: Int): ByteArray {
@@ -1422,6 +1469,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     companion object {
+        private const val DEFAULT_TITLE = "My Magic Icons"
         private const val OPEN_THEME = 101
         private const val SAVE_THEME = 100
         private const val MENU_NEW = 201

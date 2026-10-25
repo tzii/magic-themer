@@ -15,6 +15,10 @@ data class IconSuggestion(
 /**
  * An offline index of artwork names and the pack's own app associations.
  *
+ * After name matches, an app of a recognizable kind (music, transport, games…)
+ * is offered the pack's artwork for that kind: generic artwork such as
+ * `music` or `bus` first, then icons of well-known apps of the same kind.
+ *
  * Build once per loaded pack. Queries inspect a bounded shortlist rather than
  * repeatedly scanning or decoding a catalogue of up to 100,000 drawables. Only
  * whole words, complete names and explicit app associations produce suggestions;
@@ -29,6 +33,8 @@ class IconSuggestions(data: PackData) {
     private val byWord = HashMap<String, MutableList<Int>>()
     private val byPackage = HashMap<String, MutableList<IconMapping>>()
     private val byActivity = HashMap<String, MutableList<IconMapping>>()
+    /** Best artwork per category, strongest first; each entry is `index to strength`. */
+    private val byCategory = HashMap<AppCategory, List<Pair<Int, Int>>>()
 
     init {
         require(data.drawables.size <= MAX_CATALOGUE && data.mappings.size <= MAX_CATALOGUE) {
@@ -55,6 +61,46 @@ class IconSuggestions(data: PackData) {
             addMapping(byPackage, mapping.packageName, mapping)
             if (mapping.activityName.isNotEmpty()) addMapping(byActivity, mapping.activityName, mapping)
         }
+        indexCategories(data)
+    }
+
+    private fun indexCategories(data: PackData) {
+        val mappedPackages = HashMap<String, MutableSet<String>>()
+        for (mapping in data.mappings) {
+            if (mapping.drawableName !in byName) continue
+            val words = mappedPackages.getOrPut(mapping.drawableName) { HashSet() }
+            if (words.size < MAX_WORDS * 2) mapping.packageName.split('.').flatMapTo(words) { normalizedWords(it) }
+        }
+        val ranked = HashMap<AppCategory, MutableList<Triple<Int, Int, Int>>>()
+        artwork.forEachIndexed { index, icon ->
+            val nameWords = (normalizedWords(icon.name) + normalizedWords(icon.name, splitCamelCase = true)).toSet() + icon.compact
+            val packageWords = mappedPackages[icon.name].orEmpty()
+            val depicts = AppCategory.entries.filter { category -> nameWords.any { it in category.genericArt } }
+            for (category in AppCategory.entries) {
+                val strength = when {
+                    // "music" itself before "headphones"; both depict music.
+                    category in depicts -> if (nameWords.any { it in category.appWords }) 4 else 3
+                    // amazon_music is music artwork, not a shopping icon.
+                    depicts.isNotEmpty() -> 0
+                    nameWords.any { it in category.brandArt || it in category.appWords } -> 2
+                    packageWords.any { it in category.genericArt || it in category.brandArt || it in category.appWords } -> 1
+                    else -> 0
+                }
+                if (strength > 0) ranked.getOrPut(category) { ArrayList() } += Triple(index, strength, nameWords.size)
+            }
+        }
+        // Rank once: stronger evidence, then simpler names such as "music" before "music_player_alt".
+        ranked.forEach { (category, entries) ->
+            byCategory[category] = entries.sortedWith(compareByDescending<Triple<Int, Int, Int>> { it.second }
+                .thenBy { it.third }.thenBy { artwork[it.first].name }).take(MAX_CATEGORY_RESULTS).map { it.first to it.second }
+        }
+    }
+
+    /** Kinds implied by the app's declared category, media handlers, label or package words. */
+    fun categoriesOf(target: ApplicationTarget): Set<AppCategory> {
+        val words = (normalizedWords(target.label.take(256)) + normalizedWords(target.label.take(256), splitCamelCase = true) +
+            target.packageName.split('.').flatMap { normalizedWords(it) }).toSet()
+        return target.categories + AppCategory.entries.filter { category -> words.any(category::matchesAppWord) }
     }
 
     fun suggest(target: ApplicationTarget, limit: Int = 8): List<IconSuggestion> {
@@ -134,6 +180,15 @@ class IconSuggestions(data: PackData) {
                 packageMatches > 0 -> offer(index, 500 + packageMatches * 20 - minOf(icon.words.size, 20), "Matches package name")
             }
         }
+        // Look-alikes for the app's kind rank below every name or mapping match.
+        val declared = target.categories
+        for (category in categoriesOf(target)) {
+            val bonus = if (category in declared) 10 else 0
+            byCategory[category].orEmpty().forEachIndexed { rank, (index, strength) ->
+                offer(index, 300 + strength * 40 + bonus - minOf(rank, 39),
+                    if (strength >= 3) "${category.label} icon" else "Similar ${category.label.lowercase(Locale.ROOT)} app")
+            }
+        }
         return ranked.values.sortedWith(compareByDescending<IconSuggestion> { it.score }.thenBy { it.drawableName }).take(count)
     }
 
@@ -153,6 +208,7 @@ class IconSuggestions(data: PackData) {
         private const val MAX_CANDIDATES = 2_048
         private const val MAX_RESULTS = 12
         private const val MAX_WORDS = 12
+        private const val MAX_CATEGORY_RESULTS = 40
         private val CAMEL_CASE = Regex("([a-z0-9])([A-Z])")
         private val DIACRITICS = Regex("\\p{M}+")
         private val SEPARATORS = Regex("[^a-z0-9]+")

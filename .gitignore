@@ -10,4 +10,5 @@ local.properties
 *.log
 qa/output/
 dist/
+/themes to debug/
 __pycache__/
