@@ -14,8 +14,8 @@ import tempfile
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
-FAILED = Path(r"C:\Users\simon\AppData\Local\Temp\My Magic Icons.hnt")
-BASE = Path(r"C:\Users\simon\AppData\Local\Temp\chicv6.hnt")
+FAILED = Path(tempfile.gettempdir()) / "My Magic Icons.hnt"
+BASE = Path(tempfile.gettempdir()) / "chicv6.hnt"
 OUT = ROOT / "qa/output/v3"
 PKG = re.compile(r"[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)+\.png\Z")
 

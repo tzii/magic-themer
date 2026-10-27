@@ -11,6 +11,7 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Rect
+import android.graphics.drawable.Drawable
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -22,6 +23,7 @@ import android.provider.Settings
 import android.text.Editable
 import android.text.InputFilter
 import android.text.TextWatcher
+import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
@@ -32,17 +34,19 @@ import android.widget.ArrayAdapter
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
-import android.widget.ScrollView
 import android.widget.HorizontalScrollView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDialog
+import androidx.coordinatorlayout.widget.CoordinatorLayout
+import androidx.core.widget.NestedScrollView
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.ConcatAdapter
+import com.google.android.material.appbar.AppBarLayout
 import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
@@ -121,9 +125,14 @@ class MainActivity : AppCompatActivity() {
     private var pendingReport = ""
     private var selectedTab = 0
     private var appFilter = FILTER_ALL
+    /** Show each app's own artwork rather than the icon of the theme applied on this phone. */
+    private var originalIcons = false
     private var typing = false
     private lateinit var toolbar: MaterialToolbar
+    private lateinit var appBar: AppBarLayout
     private lateinit var sourceArea: LinearLayout
+    private lateinit var sourceButtons: LinearLayout
+    private lateinit var changeSourceButton: MaterialButton
     private lateinit var footer: LinearLayout
     private lateinit var choosePackButton: MaterialButton
     private lateinit var importButton: MaterialButton
@@ -139,6 +148,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var appSearch: TextInputEditText
     private lateinit var iconSearch: TextInputEditText
     private lateinit var appSummary: TextView
+    private lateinit var originalIconsSwitch: MaterialSwitch
     private lateinit var appFilters: ChipGroup
     private lateinit var allAppsChip: Chip
     private lateinit var missingAppsChip: Chip
@@ -167,6 +177,7 @@ class MainActivity : AppCompatActivity() {
         pendingReport = savedInstanceState?.getString("pendingReport") ?: preferences.getString("pendingReport", "").orEmpty()
         selectedTab = savedInstanceState?.getInt("tab") ?: preferences.getInt("tab", 0)
         appFilter = savedInstanceState?.getInt("appFilter") ?: preferences.getInt("appFilter", FILTER_ALL)
+        originalIcons = savedInstanceState?.getBoolean("originalIcons") ?: preferences.getBoolean("originalIcons", false)
         extension = savedInstanceState?.getString("extension") ?: preferences.getString("extension", "hnt") ?: "hnt"
         if (savedInstanceState?.containsKey("documentRequest") == true) {
             deferredDocumentResult = DocumentResult(savedInstanceState.getInt("documentRequest"),
@@ -199,51 +210,67 @@ class MainActivity : AppCompatActivity() {
         }
         toolbar = MaterialToolbar(this).apply {
             title = "Magic Themer"
-            subtitle = "Free, offline, ad-free"
             menu.add(0, MENU_NEW, 0, "New theme")
-            menu.add(0, MENU_REFRESH, 1, "Refresh packs")
-            menu.add(0, MENU_DETAILS, 2, "Pack details")
-            menu.add(0, MENU_THEMES, 3, "Open HONOR Themes")
-            menu.add(0, MENU_HELP, 4, "Apply help")
+            menu.add(0, MENU_OPEN, 1, "Open theme file")
+            menu.add(0, MENU_REFRESH, 2, "Refresh packs")
+            menu.add(0, MENU_DETAILS, 3, "Pack details")
+            menu.add(0, MENU_THEMES, 4, "Open HONOR Themes")
+            menu.add(0, MENU_HELP, 5, "How to apply")
+            menu.add(0, MENU_SETTINGS, 6, "Settings")
             setOnMenuItemClickListener { item ->
                 when (item.itemId) {
                     MENU_NEW -> if (!busy) newTheme()
+                    MENU_OPEN -> if (!busy) openThemePicker()
                     MENU_REFRESH -> if (!busy) refreshPacks()
                     MENU_DETAILS -> showPackDetails()
                     MENU_THEMES -> openThemes()
                     MENU_HELP -> showGuide()
+                    MENU_SETTINGS -> showSettings()
                 }
                 true
             }
         }
-        column.addView(toolbar, LinearLayout.LayoutParams(-1, dp(64)))
+        // The toolbar and source card scroll away with the lists; the tabs stay pinned.
+        appBar = AppBarLayout(this).apply {
+            setBackgroundColor(color(com.google.android.material.R.attr.colorSurface)); isLiftOnScroll = false; stateListAnimator = null; elevation = 0f
+        }
+        fun scrollsAway() = AppBarLayout.LayoutParams(-1, -2).apply {
+            scrollFlags = AppBarLayout.LayoutParams.SCROLL_FLAG_SCROLL or AppBarLayout.LayoutParams.SCROLL_FLAG_ENTER_ALWAYS or AppBarLayout.LayoutParams.SCROLL_FLAG_SNAP
+        }
+        appBar.addView(toolbar, scrollsAway().apply { height = dp(56) })
         sourceArea = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(16), 0, dp(16), dp(8)) }
-        val buttons = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
+        // Shown until a source is chosen; afterwards the card changes the pack and the menu opens themes.
+        sourceButtons = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
         choosePackButton = button("Choose pack", tonal = true) { choosePack() }
         importButton = button("Open .hnt", outlined = true) { openThemePicker() }
-        buttons.addView(choosePackButton, LinearLayout.LayoutParams(0, dp(52), 1f).apply { marginEnd = dp(8) })
-        buttons.addView(importButton, LinearLayout.LayoutParams(0, dp(52), 1f))
-        sourceArea.addView(buttons)
+        sourceButtons.addView(choosePackButton, LinearLayout.LayoutParams(0, dp(52), 1f).apply { marginEnd = dp(8) })
+        sourceButtons.addView(importButton, LinearLayout.LayoutParams(0, dp(52), 1f))
+        sourceArea.addView(sourceButtons, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(8) })
         val card = MaterialCardView(this).apply {
             cardElevation = 0f; radius = dp(20).toFloat(); strokeWidth = 0
             setCardBackgroundColor(color(com.google.android.material.R.attr.colorSurfaceContainerLow))
+            setOnClickListener { if (!busy) choosePack() }
         }
-        val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL; setPadding(dp(16), dp(12), dp(12), dp(12)) }
+        val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL; setPadding(dp(16), dp(10), dp(8), dp(10)) }
         sourceIcon = ImageView(this).apply { scaleType = ImageView.ScaleType.FIT_CENTER; importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO }
         row.addView(sourceIcon, LinearLayout.LayoutParams(dp(44), dp(44)).apply { marginEnd = dp(14) })
         val labels = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-        sourceTitle = label("Choose a source", 16f, bold = true)
+        sourceTitle = label("Choose a source", 16f, bold = true).apply { maxLines = 1; ellipsize = android.text.TextUtils.TruncateAt.END }
         sourceSubtitle = label("An installed pack or an existing HONOR theme", 12f, muted = true).apply { maxLines = 2 }
         labels.addView(sourceTitle); labels.addView(sourceSubtitle)
         row.addView(labels, LinearLayout.LayoutParams(0, -2, 1f))
+        changeSourceButton = button("Change", borderless = true) { choosePack() }
+        row.addView(changeSourceButton, LinearLayout.LayoutParams(-2, dp(48)).apply { marginStart = dp(4) })
         card.addView(row)
-        sourceArea.addView(card, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(8) })
-        column.addView(sourceArea)
+        sourceArea.addView(card, LinearLayout.LayoutParams(-1, -2))
+        appBar.addView(sourceArea, scrollsAway())
         tabs = TabLayout(this).apply {
             tabMode = TabLayout.MODE_FIXED
             addTab(newTab().setText("Apps")); addTab(newTab().setText("Pack icons")); addTab(newTab().setText("Theme"))
         }
-        column.addView(tabs, LinearLayout.LayoutParams(-1, dp(48)))
+        appBar.addView(tabs, AppBarLayout.LayoutParams(-1, dp(48)).apply { scrollFlags = 0 })
+        val coordinator = CoordinatorLayout(this)
+        coordinator.addView(appBar, CoordinatorLayout.LayoutParams(-1, -2))
         val body = FrameLayout(this)
         // Pages take focus when a search field clears it, so focus never jumps to another field.
         val appPage = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(16), dp(10), dp(16), 0); isFocusableInTouchMode = true }
@@ -262,8 +289,16 @@ class MainActivity : AppCompatActivity() {
         appFilters.addView(unthemeableAppsChip)
         filterScroll.addView(appFilters)
         appPage.addView(filterScroll, LinearLayout.LayoutParams(-1, dp(48)).apply { topMargin = dp(6) })
+        val summaryRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
         appSummary = label("Finding installed apps…", 12f, muted = true)
-        appPage.addView(appSummary, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(8); bottomMargin = dp(4) })
+        summaryRow.addView(appSummary, LinearLayout.LayoutParams(0, -2, 1f))
+        // HONOR hands out the applied theme's icons, which hides which apps a custom theme already covers.
+        originalIconsSwitch = MaterialSwitch(this).apply {
+            text = "Original icons"; textSize = 12f; isChecked = originalIcons
+            setOnCheckedChangeListener { _, checked -> originalIcons = checked; updateAppList(); if (ready) persist() }
+        }
+        summaryRow.addView(originalIconsSwitch, LinearLayout.LayoutParams(-2, dp(48)).apply { marginStart = dp(8) })
+        appPage.addView(summaryRow, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(2) })
         appAdapter = VisualAdapter(this, thumbnails, false) { item ->
             if (typing) hideKeyboard(appSearch)
             if (!busy) targets().firstOrNull { it.packageName == item.key }?.let { chooseIcon(it) }
@@ -280,27 +315,21 @@ class MainActivity : AppCompatActivity() {
         }
         iconList = recycler(iconAdapter, true)
         iconPage.addView(iconList, LinearLayout.LayoutParams(-1, 0, 1f))
-        val themeScroll = ScrollView(this).apply { isFillViewport = true }
-        val themePage = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(20), dp(16), dp(20), dp(20)) }
+        val themeScroll = NestedScrollView(this).apply { isFillViewport = true }
+        val themePage = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(20), dp(4), dp(20), dp(20)) }
         themeScroll.addView(themePage)
+        sectionHeading(themePage, "Details")
         titleInput = editorField(themePage, "Theme name", 64, false).apply { setText(saved?.getString("title") ?: preferences.getString("title", DEFAULT_TITLE)) }
-        designerInput = editorField(themePage, "Designer", 128, false).apply { setText(saved?.getString("designer") ?: preferences.getString("designer", "Magic Themer")) }
+        designerInput = editorField(themePage, "Designer", 128, false).apply { setText(saved?.getString("designer") ?: preferences.getString("designer", null) ?: defaultDesigner()) }
         briefInput = editorField(themePage, "Description", 4096, true).apply { setText(saved?.getString("brief") ?: preferences.getString("brief", "")) }
-        repairCompatibility = MaterialSwitch(this).apply {
-            text = "Repair theme compatibility"
-            isChecked = saved?.getBoolean("repair") ?: preferences.getBoolean("repair", true)
-            setOnCheckedChangeListener { _, _ -> if (ready) persist() }
-        }
-        themePage.addView(repairCompatibility, LinearLayout.LayoutParams(-1, dp(56)))
-        repairNote = label("Convert this minimal legacy theme to the experimental HONOR profile; your icons and designer credit are preserved.", 13f, muted = true)
-        themePage.addView(repairNote)
+        sectionHeading(themePage, "Icons")
         wholePack = MaterialSwitch(this).apply {
             text = "Whole icon pack"
             isChecked = saved?.getBoolean("whole") ?: preferences.getBoolean("whole", true)
             setOnCheckedChangeListener { _, _ -> if (ready) { persist(); refreshUi() } }
         }
-        themePage.addView(wholePack, LinearLayout.LayoutParams(-1, dp(56)).apply { topMargin = dp(8) })
-        themePage.addView(label("Include every app mapping, including apps not installed here. Alternative artwork can be assigned individually.", 13f, muted = true))
+        themePage.addView(wholePack, LinearLayout.LayoutParams(-1, dp(56)))
+        themePage.addView(label("Include every app the pack covers, even apps that aren't installed on this phone.", 13f, muted = true))
         applyPackButton = button("Apply whole pack to theme", tonal = true) { applyWholePack() }
         themePage.addView(applyPackButton, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(12) })
         replaceIcons = MaterialSwitch(this).apply {
@@ -309,23 +338,33 @@ class MainActivity : AppCompatActivity() {
             setOnCheckedChangeListener { _, _ -> if (ready) { persist(); refreshUi() } }
         }
         themePage.addView(replaceIcons, LinearLayout.LayoutParams(-1, dp(56)))
-        replaceNote = label("Off: merge the pack and keep uncovered theme icons. On: replace static package icons when a pack is explicitly applied.", 13f, muted = true)
+        replaceNote = label("When applying a pack, drop the theme's old app icons instead of keeping those the pack doesn't cover.", 13f, muted = true)
         themePage.addView(replaceNote)
+        sectionHeading(themePage, "File")
         val formatLayout = TextInputLayout(this, null, com.google.android.material.R.attr.textInputStyle).apply {
             hint = "Theme format"; endIconMode = TextInputLayout.END_ICON_DROPDOWN_MENU
         }
         formatInput = MaterialAutoCompleteTextView(formatLayout.context).apply {
-            inputType = 0
+            inputType = 0; textSize = 16f; setPadding(dp(16), dp(16), dp(16), dp(16))
             setAdapter(ArrayAdapter(this@MainActivity, android.R.layout.simple_dropdown_item_1line, FORMATS))
             setText(FORMATS[if (extension == "hwt") 1 else 0], false)
             setOnItemClickListener { _, _, index, _ -> extension = if (index == 1) "hwt" else "hnt"; if (ready) persist() }
         }
         formatLayout.addView(formatInput)
-        themePage.addView(formatLayout, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(18) })
-        themePage.addView(label("Static icons • 192 px PNG • saved as a new file", 13f, muted = true), LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(16) })
+        themePage.addView(formatLayout, LinearLayout.LayoutParams(-1, -2))
+        themePage.addView(label("Static icons • 192 px PNG • always saved as a new file", 13f, muted = true), LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(8) })
+        repairCompatibility = MaterialSwitch(this).apply {
+            text = "Repair theme compatibility"
+            isChecked = saved?.getBoolean("repair") ?: preferences.getBoolean("repair", true)
+            setOnCheckedChangeListener { _, _ -> if (ready) persist() }
+        }
+        themePage.addView(repairCompatibility, LinearLayout.LayoutParams(-1, dp(56)).apply { topMargin = dp(8) })
+        repairNote = label("Convert this minimal legacy theme to the experimental HONOR profile; your icons and designer credit are preserved.", 13f, muted = true)
+        themePage.addView(repairNote)
         pages = listOf(appPage, iconPage, themeScroll)
         pages.forEach { body.addView(it, FrameLayout.LayoutParams(-1, -1)) }
-        column.addView(body, LinearLayout.LayoutParams(-1, 0, 1f))
+        coordinator.addView(body, CoordinatorLayout.LayoutParams(-1, -1).apply { behavior = AppBarLayout.ScrollingViewBehavior() })
+        column.addView(coordinator, LinearLayout.LayoutParams(-1, 0, 1f))
         footer = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL; setPadding(dp(16), dp(8), dp(16), dp(8))
             setBackgroundColor(color(com.google.android.material.R.attr.colorSurfaceContainerLow))
@@ -342,6 +381,7 @@ class MainActivity : AppCompatActivity() {
         tabs.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
             override fun onTabSelected(tab: TabLayout.Tab) {
                 selectedTab = tab.position; showPage()
+                if (ready) appBar.setExpanded(true, true)
                 (getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager).hideSoftInputFromWindow(tabs.windowToken, 0)
                 if (ready) persist()
             }
@@ -384,6 +424,7 @@ class MainActivity : AppCompatActivity() {
                 if (sourceName != null && restored != null && sourceName != restored.sourceFile.name) migrateSession(sourceName, restored.sourceFile.name)
                 initialized = true
                 restoreSession()
+                fillDefaultCredits()
                 persist()
                 setBusy(false, warning.ifBlank {
                     if (restored != null) "Theme opened. Edit its icons or metadata, then save a copy."
@@ -499,12 +540,39 @@ class MainActivity : AppCompatActivity() {
                 failedIcons.removeIf { it.startsWith("pack:${pack.packageName}:") }
                 packData = data
                 if (document == null) restoreSession()
-                // Use the selected pack as the default name without replacing a custom title.
-                if (document == null && titleInput.text.toString().trim() == DEFAULT_TITLE) titleInput.setText(pack.label.trim().take(64).ifBlank { DEFAULT_TITLE })
+                fillDefaultCredits()
                 persist(); refreshUi()
                 setBusy(false, if (document == null) "${data.drawables.size} icons ready to browse." else "Pack loaded. Apply it explicitly or choose individual icons.")
             }
         }
+    }
+
+    private fun packTitle(): String = packData?.pack?.label?.trim()?.take(64)?.ifBlank { null } ?: DEFAULT_TITLE
+
+    /**
+     * A new theme is named after its pack and credits this phone until the user
+     * types their own. A title matching any installed pack was filled in here,
+     * so switching packs renames it too.
+     */
+    private fun fillDefaultCredits() {
+        if (document != null) return
+        val title = titleInput.text.toString().trim()
+        if (title.isEmpty() || title == DEFAULT_TITLE || packs.any { it.label.trim().take(64) == title }) titleInput.setText(packTitle())
+        if (designerInput.text.toString().trim() == LEGACY_DESIGNER) designerInput.setText(defaultDesigner())
+    }
+
+    /** The credit chosen in Settings, else this phone's name. */
+    private fun defaultDesigner(): String = preferences.getString("defaultDesigner", null)?.trim()?.ifEmpty { null } ?: deviceDesigner()
+
+    /** The name set in Settings → About phone, else the model. */
+    private fun deviceDesigner(): String {
+        val named = listOf(Settings.Global.DEVICE_NAME, "unified_device_name").firstNotNullOfOrNull { key ->
+            runCatching { Settings.Global.getString(contentResolver, key) }.getOrNull()?.trim()?.takeIf { it.isNotEmpty() }
+        }
+        val model = Build.MODEL.orEmpty().trim()
+        val maker = Build.MANUFACTURER.orEmpty().trim()
+        val fallback = if (maker.isEmpty() || model.startsWith(maker, ignoreCase = true)) model else "${maker.uppercase()} $model"
+        return (named ?: fallback).take(128).ifBlank { LEGACY_DESIGNER }
     }
 
     private fun applyWholePack() {
@@ -599,17 +667,17 @@ class MainActivity : AppCompatActivity() {
         val visible = query.rank(filtered) { listOf(searchText(it.label), searchText(it.packageName)) }
         appAdapter.submit(visible.map { target ->
             val state = states.getValue(target.packageName)
-            VisualItem(target.packageName, target.label, target.packageName, "app:${target.packageName}",
+            VisualItem(target.packageName, target.label, target.packageName, appIconKey(target.packageName),
                 state.imageKey.takeUnless { it == "app:${target.packageName}" }, state.status, state.needsIcon || state.unthemeable)
         }) { if (scrollToTop) appList.scrollToPosition(0) }
         val themed = apps.count { states[it.packageName]?.let { state -> !state.needsIcon && !state.unthemeable } == true }
-        val untouchable = if (unthemeable > 0) " · $unthemeable can't be themed by HONOR" else ""
+        val untouchable = if (unthemeable > 0) " · $unthemeable can't be themed" else ""
         appSummary.text = when {
-            visible.isEmpty() && query.isBlank && appFilter == FILTER_MISSING -> "Every app has a theme icon.$untouchable"
-            visible.isEmpty() -> "No apps match this filter."
-            appFilter == FILTER_UNTHEMEABLE -> "Renamed builds: HONOR applies no theme icon to these apps. Tap one for details."
-            !query.isBlank -> "${visible.size} app(s) match · best matches first"
-            else -> "$themed of ${apps.size} installed apps themed$untouchable · original → chosen icon"
+            visible.isEmpty() && query.isBlank && appFilter == FILTER_MISSING -> "Every app has a theme icon$untouchable"
+            visible.isEmpty() -> "No apps match"
+            appFilter == FILTER_UNTHEMEABLE -> "Renamed builds HONOR can't theme · tap for details"
+            !query.isBlank -> "${visible.size} ${if (visible.size == 1) "match" else "matches"} · best first"
+            else -> "$themed of ${apps.size} apps themed$untouchable"
         }
     }
 
@@ -629,6 +697,9 @@ class MainActivity : AppCompatActivity() {
         return query.rank(available) { name -> index?.get(name) ?: listOf(searchText(name)) }
     }
 
+    /** An installed app's icon as the launcher shows it now, or its own artwork. */
+    private fun appIconKey(packageName: String): String = if (originalIcons) "original:$packageName" else "app:$packageName"
+
     private fun searchText(value: String): SearchText {
         if (searchTexts.size > MAX_SEARCH_TEXTS) searchTexts.clear()
         return searchTexts.getOrPut(value) { SearchText.of(value) }
@@ -637,10 +708,13 @@ class MainActivity : AppCompatActivity() {
     private fun refreshUi(forceRebind: Boolean = false) {
         val source = document
         val data = packData
-        toolbar.subtitle = if (source == null) "Free, offline, ad-free" else "Editing a theme copy"
+        val empty = source == null && data == null
+        sourceButtons.visibility = if (empty) View.VISIBLE else View.GONE
+        changeSourceButton.visibility = if (empty) View.GONE else View.VISIBLE
+        changeSourceButton.text = if (data == null) "Choose pack" else "Change"
         sourceTitle.text = source?.title?.ifBlank { "Imported theme" } ?: data?.pack?.label ?: "Choose a source"
         sourceSubtitle.text = when {
-            source != null -> "${source.iconEntries.size} theme icons" + (data?.let { " · ${it.pack.label} selected" } ?: " · original file preserved")
+            source != null -> "Editing a copy · ${source.iconEntries.size} icons" + (data?.let { " · ${it.pack.label} selected" } ?: "")
             data != null -> "${data.drawables.size} icons · ${data.mappings.map { it.packageName }.distinct().size} app mappings"
             else -> "An installed pack or an existing HONOR theme"
         }
@@ -725,7 +799,7 @@ class MainActivity : AppCompatActivity() {
                 val ranked = query.rank(targets()) { listOf(searchText(it.label), searchText(it.packageName)) }
                 // Without a query, apps that still need artwork come first.
                 (if (query.isBlank) ranked.sortedWith(compareBy<ApplicationTarget> { !state(it).needsIcon }.thenBy(String.CASE_INSENSITIVE_ORDER) { it.label }) else ranked)
-                    .map { target -> VisualItem(target.packageName, target.label, target.packageName, "app:${target.packageName}", "pack:${data.pack.packageName}:$drawable",
+                    .map { target -> VisualItem(target.packageName, target.label, target.packageName, appIconKey(target.packageName), "pack:${data.pack.packageName}:$drawable",
                         state(target).status, state(target).needsIcon || state(target).unthemeable) }
             },
             onSelect = { item -> targets().firstOrNull { it.packageName == item.key }?.let { assign(it, data, drawable) } })
@@ -905,7 +979,7 @@ class MainActivity : AppCompatActivity() {
         document = null; appliedPack = null; choices.clear(); removedPackages.clear()
         old?.let { ThemeEditor.close(it); it.sourceFile.delete() }
         ready = false
-        titleInput.setText(DEFAULT_TITLE); designerInput.setText("Magic Themer"); briefInput.setText("")
+        titleInput.setText(packTitle()); designerInput.setText(defaultDesigner()); briefInput.setText("")
         wholePack.isChecked = true; replaceIcons.isChecked = false
         repairCompatibility.isChecked = true
         ready = true
@@ -1157,10 +1231,9 @@ class MainActivity : AppCompatActivity() {
                 val source = document
                 if (parts.size == 3 && source?.sourceFile?.name == parts[1]) ThemeEditor.readIcon(source, parts[2])?.let { decodeThemePng(it, size) } else null
             }
-            "app" -> if (parts.size >= 2) runCatching {
-                val drawable = packageManager.getApplicationIcon(parts[1]).mutate()
-                Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888).also { bitmap -> drawable.setBounds(0, 0, size, size); drawable.draw(Canvas(bitmap)) }
-            }.getOrNull() else null
+            "app" -> if (parts.size >= 2) runCatching { drawIcon(packageManager.getApplicationIcon(parts[1]), size) }.getOrNull() else null
+            "original" -> if (parts.size >= 2) originalAppIcon(parts[1], size)
+                ?: runCatching { drawIcon(packageManager.getApplicationIcon(parts[1]), size) }.getOrNull() else null
             else -> null
         }
         // Resource lookup is cheap and used for all rows. Actual decode failures
@@ -1170,6 +1243,32 @@ class MainActivity : AppCompatActivity() {
         }
         return image
     }
+
+    private fun drawIcon(drawable: Drawable, size: Int): Bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888).also { bitmap ->
+        drawable.mutate().apply { setBounds(0, 0, size, size) }.draw(Canvas(bitmap))
+    }
+
+    /**
+     * The launcher icon an app ships with. HONOR swaps in the applied theme's
+     * icon while loading the registered icon drawable (HwResourcesImpl.loadDrawable),
+     * so this reads the icon resource itself: raw PNG/WebP bytes, or the XML
+     * whose layers are ordinary drawables. Null when the icon cannot be read this way.
+     */
+    private fun originalAppIcon(packageName: String, size: Int): Bitmap? = runCatching {
+        val intent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER).setPackage(packageName)
+        val activity = (if (Build.VERSION.SDK_INT >= 33) packageManager.queryIntentActivities(intent, PackageManager.ResolveInfoFlags.of(0))
+            else { @Suppress("DEPRECATION") packageManager.queryIntentActivities(intent, 0) }).firstOrNull()?.activityInfo
+        val info = activity?.applicationInfo ?: packageManager.getApplicationInfo(packageName, 0)
+        val id = activity?.iconResource?.takeIf { it != 0 } ?: info.icon
+        if (id == 0) return@runCatching null
+        val resources = packageManager.getResourcesForApplication(info)
+        val value = TypedValue().also { resources.getValue(id, it, true) }
+        if (value.string?.endsWith(".xml") == true) drawIcon(Drawable.createFromXml(resources, resources.getXml(id)), size)
+        else resources.openRawResource(id, value).use(BitmapFactory::decodeStream)?.let { decoded ->
+            if (decoded.width == size && decoded.height == size) decoded
+            else Bitmap.createScaledBitmap(decoded, size, size, true).also { decoded.recycle() }
+        }
+    }.getOrNull()
 
     private fun decodeThemePng(bytes: ByteArray, size: Int): Bitmap? {
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
@@ -1208,6 +1307,41 @@ class MainActivity : AppCompatActivity() {
         ).setPositiveButton("Open Themes") { _, _ -> openThemes() }
             .setNeutralButton("App info") { _, _ -> openThemesAppInfo() }
             .setNegativeButton("Close", null).show()
+    }
+
+    private fun showSettings() {
+        val panel = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(24), 0, dp(24), dp(8)) }
+        sectionHeading(panel, "App list")
+        val original = MaterialSwitch(this).apply { text = "Show original app icons"; isChecked = originalIcons }
+        panel.addView(original, LinearLayout.LayoutParams(-1, dp(56)))
+        panel.addView(label("HONOR reports icons from the applied theme. Turn this on to see each app's own icon instead.", 13f, muted = true))
+        sectionHeading(panel, "New themes")
+        val designer = editorField(panel, "Designer credit", 128, false).apply { setText(preferences.getString("defaultDesigner", "")) }
+        panel.addView(label("Leave empty to use this phone's name: ${deviceDesigner()}", 13f, muted = true))
+        sectionHeading(panel, "About")
+        val version = runCatching { packageManager.getPackageInfo(packageName, 0).versionName }.getOrNull().orEmpty()
+        panel.addView(label("Magic Themer $version\nFree and open source under the GNU GPL v3. No ads, accounts, analytics or network access.", 13f, muted = true))
+        panel.addView(button("Source code", outlined = true) {
+            runCatching { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(SOURCE_URL))) }.onFailure { status.text = SOURCE_URL }
+        }, LinearLayout.LayoutParams(-2, -2).apply { topMargin = dp(8) })
+        val scroll = NestedScrollView(this).apply { addView(panel) }
+        MaterialAlertDialogBuilder(this).setTitle("Settings").setView(scroll)
+            .setPositiveButton("Done", null)
+            .setOnDismissListener {
+                val credit = designer.text.toString().trim()
+                val previous = defaultDesigner()
+                preferences.edit().putString("defaultDesigner", credit).apply()
+                // A new theme still carrying the old default picks up the new credit.
+                if (document == null && designerInput.text.toString().trim() == previous) designerInput.setText(defaultDesigner())
+                originalIconsSwitch.isChecked = original.isChecked
+            }.show()
+    }
+
+    private fun sectionHeading(parent: LinearLayout, text: String) {
+        val heading = label(text, 14f, bold = true).apply {
+            setTextColor(color(androidx.appcompat.R.attr.colorPrimary)); ViewCompat.setAccessibilityHeading(this, true)
+        }
+        parent.addView(heading, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(20); bottomMargin = dp(10) })
     }
 
     private fun openThemes() {
@@ -1260,6 +1394,7 @@ class MainActivity : AppCompatActivity() {
             .putBoolean("whole", wholePack.isChecked).putBoolean("replace", replaceIcons.isChecked)
             .putBoolean("repair", repairCompatibility.isChecked)
             .putString("extension", extension).putInt("tab", selectedTab).putInt("appFilter", appFilter)
+            .putBoolean("originalIcons", originalIcons)
             .putString("pendingExport", pendingExport).putString("pendingReport", pendingReport).apply()
     }
 
@@ -1366,7 +1501,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun updateControls() {
         if (!::saveButton.isInitialized) return
-        choosePackButton.isEnabled = !busy; importButton.isEnabled = !busy
+        choosePackButton.isEnabled = !busy; importButton.isEnabled = !busy; changeSourceButton.isEnabled = !busy
         saveButton.isEnabled = !busy && (document != null || packData != null)
         applyPackButton.isEnabled = !busy && document != null && packData != null
         titleInput.isEnabled = !busy; designerInput.isEnabled = !busy; briefInput.isEnabled = !busy
@@ -1375,6 +1510,7 @@ class MainActivity : AppCompatActivity() {
         appSearch.isEnabled = !busy; iconSearch.isEnabled = !busy
         toolbar.menu.findItem(MENU_NEW)?.isEnabled = !busy
         toolbar.menu.findItem(MENU_REFRESH)?.isEnabled = !busy
+        toolbar.menu.findItem(MENU_OPEN)?.isEnabled = !busy
     }
 
     private fun showPage() { if (::pages.isInitialized) pages.forEachIndexed { index, view -> view.visibility = if (index == selectedTab) View.VISIBLE else View.GONE } }
@@ -1383,8 +1519,8 @@ class MainActivity : AppCompatActivity() {
     private fun setTyping(value: Boolean) {
         if (typing == value || !::footer.isInitialized) return
         typing = value
-        val visibility = if (value) View.GONE else View.VISIBLE
-        toolbar.visibility = visibility; sourceArea.visibility = visibility; footer.visibility = visibility
+        if (value) appBar.setExpanded(false, true)
+        footer.visibility = if (value) View.GONE else View.VISIBLE
     }
 
     private fun hideKeyboard(view: View) {
@@ -1481,6 +1617,7 @@ class MainActivity : AppCompatActivity() {
         outState.putBoolean("whole", wholePack.isChecked); outState.putBoolean("replace", replaceIcons.isChecked)
         outState.putBoolean("repair", repairCompatibility.isChecked)
         outState.putString("extension", extension); outState.putInt("tab", selectedTab); outState.putInt("appFilter", appFilter)
+        outState.putBoolean("originalIcons", originalIcons)
         outState.putString("pendingExport", pendingExport); outState.putString("pendingReport", pendingReport)
         deferredDocumentResult?.let { result ->
             outState.putInt("documentRequest", result.requestCode); outState.putInt("documentResult", result.resultCode)
@@ -1500,6 +1637,8 @@ class MainActivity : AppCompatActivity() {
     companion object {
         private val THEME_PACKAGES = listOf("com.hihonor.android.thememanager", "com.huawei.android.thememanager")
         private const val DEFAULT_TITLE = "My Magic Icons"
+        /** Designer credit before 0.7; still replaced by the phone's name on new themes. */
+        private const val LEGACY_DESIGNER = "Magic Themer"
         private const val OPEN_THEME = 101
         private const val SAVE_THEME = 100
         private const val MENU_NEW = 201
@@ -1507,6 +1646,9 @@ class MainActivity : AppCompatActivity() {
         private const val MENU_DETAILS = 203
         private const val MENU_THEMES = 204
         private const val MENU_HELP = 205
+        private const val MENU_OPEN = 206
+        private const val MENU_SETTINGS = 207
+        private const val SOURCE_URL = "https://github.com/tzii/magic-themer"
         private const val FILTER_ALL = 0
         private const val FILTER_MISSING = 1
         private const val FILTER_CUSTOMIZED = 2

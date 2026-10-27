@@ -65,7 +65,7 @@ class VisualAdapter(
             strokeWidth = 0
             isClickable = true
             isFocusable = true
-            minimumHeight = dp(if (grid) 128 else 80)
+            minimumHeight = dp(if (grid) 128 else 64)
             setCardBackgroundColor(color(if (grid) com.google.android.material.R.attr.colorSurfaceContainerLow else com.google.android.material.R.attr.colorSurface))
             layoutParams = RecyclerView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
                 setMargins(dp(if (grid) 5 else 0), dp(4), dp(if (grid) 5 else 0), dp(4))
@@ -104,13 +104,16 @@ class VisualAdapter(
             val body = LinearLayout(context).apply {
                 orientation = LinearLayout.HORIZONTAL
                 gravity = Gravity.CENTER_VERTICAL
-                setPadding(dp(14), dp(12), dp(14), dp(12))
+                setPadding(dp(14), dp(8), dp(14), dp(8))
             }
             body.addView(image, LinearLayout.LayoutParams(dp(48), dp(48)).apply { marginEnd = dp(14) })
             val labels = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL }
             labels.addView(title)
-            labels.addView(status, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { topMargin = dp(4) })
-            labels.addView(subtitle, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { topMargin = dp(3) })
+            // Badge and package share a line so more rows fit on screen.
+            val details = LinearLayout(context).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
+            details.addView(status, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { marginEnd = dp(8) })
+            details.addView(subtitle, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+            labels.addView(details, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { topMargin = dp(4) })
             body.addView(labels, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
             body.addView(comparison, LinearLayout.LayoutParams(dp(48), dp(48)).apply { marginStart = dp(12) })
             card.addView(body)

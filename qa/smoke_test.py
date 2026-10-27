@@ -31,7 +31,7 @@ def main():
                   "installed": check_new(out / "QA Installed.hnt",
                   ["com.android.settings", "dev.magicthemer", "dev.magicthemer.fixture"], "QA Installed")}
         ui.start()
-        ui.await_text("Open .hnt")
+        ui.await_text("Magic Themer")
         editor_checks(ui, out, fixture, original_hash, report)
         return
     for name in ("QA Whole Pack.hnt", "QA Installed.hnt", "QA Edited-edited.hnt", "QA Merged-edited.hnt"):
@@ -49,7 +49,7 @@ def main():
 
     ui.adb("install", "-r", str(ROOT / "qa/iconpack/build/outputs/apk/debug/iconpack-debug.apk"))
     ui.start()
-    ui.tap(ui.await_text("Choose pack"))
+    ui.choose_pack()
     ui.tap(ui.await_text("Magic Themer QA Pack", contains=True))
     ui.await_text("Pack icons")
     time.sleep(1)
@@ -75,7 +75,7 @@ def main():
     ui.tap(ui.find("Theme"))
     whole = ui.await_text("Whole icon pack", contains=True)
     assert whole.get("checked") == "true"
-    ui.edit(ui.await_text("My Magic Icons"), "QA Whole Pack")
+    ui.edit(ui.await_text("Magic Themer QA Pack"), "QA Whole Pack")
     ui.tap(ui.find("Save theme"))
     ui.save_document()
     dismiss_saved(ui)
@@ -109,7 +109,7 @@ def editor_checks(ui, out, fixture, original_hash, report):
     if ui.await_text("Whole icon pack").get("checked") != "true":
         ui.tap(ui.find("Whole icon pack"))
 
-    ui.tap(ui.find("Open .hnt"))
+    ui.open_theme_file()
     ui.open_fixture("QA Base.hnt")
     ui.await_text("Save theme copy", timeout=45)
     ui.tap(ui.find("Theme"))

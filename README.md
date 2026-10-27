@@ -1,88 +1,51 @@
 # Magic Themer
 
-A free, offline Android prototype that creates icon themes from installed icon packs and edits supported local theme files. Target: **HONOR Magic V5, MagicOS 10.0.0.168 EU**.
+Turn the icon packs you already have into HONOR / MagicOS icon themes. Free, offline and open source: no ads, accounts, analytics or network access.
 
-On 25 October, the user confirmed that the v0.5 export **My Magic Icons** applies correctly on both V5 displays, leaves the wallpaper unchanged when applying icons, offers useful category recommendations and persists as expected. The wallpaper-free A control also applies icons. Themes initially needed a phone restart to discover the files; a later export appeared after force-stopping and reopening Themes. Peafowl does not need that workaround when the user moves its completed export into `Honor/Themes`. Earlier edited-theme repairs remain separate checks; see [device results](docs/RESEARCH.md#25-october-follow-up-icon-application-and-force-stop-refresh).
+HONOR Themes doesn't support third-party icon packs. Magic Themer reads an installed pack, lets you fill gaps and pick alternatives app by app, and saves a `.hnt` theme you apply in HONOR Themes → **Customize → Icons**. It can also edit the icons and details of an existing local theme, always saving a new copy.
 
-## What v0.6 adds
+Tested on an **HONOR Magic V5, MagicOS 10** (EU). Other HONOR and Huawei devices may work but are untested.
 
-- Includes the optimized launcher icon and its dedicated monochrome version. The original SVG is preserved under `artwork/launcher/`.
-- New exports use the tested A layout without generating home or lock wallpapers. Imported theme modules continue to be preserved.
-- When the chosen storage provider supports renaming, saves write under a temporary non-theme name, verify the bytes, then rename to the chosen `.hnt`/`.hwt` name and verify again. This makes the completed archive arrive by rename, like the user's manual Peafowl-file move. Whether it fixes V5 discovery is still unverified. Providers without rename support retain the verified direct-save flow.
-- The save dialog and apply guide explain the confirmed force-stop workaround. **App info** opens the system screen where the user can force-stop Themes, then reopen it.
+## Features
 
-## What v0.5 adds
+- Finds installed icon packs that use the common launcher formats (Nova, ADW, Lawnchair, Smart Launcher and others).
+- Exports the whole pack, including apps you haven't installed yet, or only your installed apps.
+- **Needs icon** lists apps the pack doesn't cover, with suggestions based on the app's name, category and whether it plays music or video.
+- **Original icons** shows each app's own icon instead of the one from your current theme, so you can see what a theme really covers.
+- Search across apps and artwork that tolerates typos, split words and initials.
+- Opens existing ordinary `.hnt` themes to change icons, name, designer and description, keeping their wallpapers, fonts and other modules.
+- Flags apps HONOR can't theme (builds renamed after compilation).
+- Light and dark themes; adapts to foldables, tablets and landscape.
 
-- v0.5 exports added a generated wallpaper module, `preview/`, `unlock/` and `wallpaper/` folder records, real timestamps and Peafowl's member order. A blank description is omitted. v0.5 and the wallpaper-free A control both apply icons on the V5. v0.6 keeps the validated packaging and removes the generated wallpaper. Choosing **Customize → Icons** applies just the icons.
-- Choosing a pack replaces an untouched default theme name with the pack's name. Existing sessions retain their saved title; the user's v0.5 export named `My Magic Icons` is listed successfully, so that name alone is not a discovery blocker.
-- Apps with no matching artwork get suggestions for their kind: music, video, games, transport, maps, photos, chat, browser, mail, money, shopping, food, news and reading, notes, files, health, weather, travel and tools. The kind comes from the app's name and package words (including fused names such as Busitalia), its declared Android category, and whether it plays video or audio. Generic artwork such as `music` or `bus` comes first, then icons of well-known apps of that kind. Name and mapping matches always rank above these.
+## Install
 
-## What v0.4 adds
+Download the APK from [Releases](https://github.com/tzii/magic-themer/releases) and install it. Install any icon packs from Google Play as usual. Magic Themer doesn't download or unlock paid packs.
 
-- Saving a working imported theme without edits produces a byte-identical copy when legacy conversion is off. Metadata edits replace only requested XML values; a blank missing description is not added.
-- Unchanged ZIP members retain their original compressed bytes, headers, attributes and comments. Changed and new members carry complete local CRC/size fields without streaming data descriptors.
-- Editing icons in an imported theme keeps the author's previews. The six additions in the supplied edited `chicv6` are retained in the new personal repair.
-- The minimal legacy conversion also recognizes copies with customized designer credit, and normalizes legacy ZIP headers in both layers.
-- System file-picker saves are read back and checked against the working export's length and SHA-256 before success is reported. The save dialog shows the actual filename and warns about an unexpected extension.
+If upgrading from an earlier debug preview, export any theme you want to keep, then uninstall the preview before installing the public release. The signing keys differ, and uninstalling clears the app's saved assignments and settings. Future public releases use the same permanent signing key.
 
-## What v0.3 adds
+## Make a theme
 
-- New exports use the working file's `HwTheme` version 12 metadata, empty unlock declaration and 720×1280 preview images.
-- **Needs icon** shows apps without usable theme artwork. **All / Needs icon / Customized** filters include counts and separate status badges.
-- Missing apps offer ranked, offline icon suggestions with thumbnails and match reasons. Tap one to assign it; the full searchable catalogue remains available.
-- Imports support larger working themes and HONOR's flat launcher aliases such as `:CAMERA.png`, while retaining archive validation and file-backed processing.
-- Older minimal Magic Themer exports offer **Repair theme compatibility**, enabled by default, when saved as a copy.
-- Active edits and pending saves use private working storage, so Android cache eviction cannot discard a large theme during editing. Existing cached sessions migrate when their files remain available.
+1. Tap **Choose pack**.
+2. In **Apps**, use **Needs icon** to find gaps. Tap an app to pick a suggested icon or search the pack. **Pack icons** browses all of the pack's artwork, including alternatives.
+3. In **Theme**, check the name and designer. **Whole icon pack** includes apps you haven't installed; turn it off to export installed apps only.
+4. Tap **Save theme** and save into internal storage → `HONOR/Themes` (or Downloads, then move it there with Files).
+5. Open HONOR Themes → **Me → My downloads**, then **Customize → Icons** and pick your theme.
 
-Existing features:
+If the theme doesn't show up, tap **App info** in the save dialog, choose **Force stop**, then reopen Themes.
 
-- Finds installed icon packs through common launcher intent signatures.
-- Reads appfilter mappings and drawable.xml artwork catalogues from XML resources, raw resources or assets.
-- Renders bitmap, vector and adaptive drawables as transparent 192 px PNGs.
-- Uses Material 3 components with light/dark themes and visual pack, app and icon browsing.
-- Reports installed-app coverage and lets you reassign app icons from a searchable artwork gallery.
-- Search ranks the best matches first and tolerates a small typo, joined or split words ("droid deck") and initials ("yt"). Artwork is also found by the apps a pack maps it to. While typing, the header and save bar make room for results, and dragging the results hides the keyboard. Wide and unfolded screens show more columns.
-- Saves manual assignments locally per pack.
-- Defaults to the full mapped pack, including apps absent from this phone. Installed-app-only export remains available.
-- Creates experimental `.hnt` and `.hwt` theme archives and saves through Android's system file picker.
-- Opens supported existing theme ZIPs, edits title/designer/description and static app icons, and saves a new copy while preserving unrelated module contents.
-- Opens HONOR Themes and explains the import/apply flow.
+To edit an existing theme, use **Open .hnt** (or **Open theme file** in the menu). Selecting a pack doesn't change an imported theme until you assign icons or tap **Apply whole pack to theme**. Saving always creates a new file; the original is never overwritten.
 
-The full mapped pack means **one selected icon per app package in appfilter.xml**, including uninstalled apps. Alternative artwork from drawable.xml is available for manual assignments; it does not become an extra theme icon until assigned to an app. A pack with only drawable.xml can be browsed and assigned manually.
+## Limitations
 
-No ads, accounts, analytics, network permission, subscriptions or broad storage permissions. Install any purchased icon packs normally from Google Play before using them here. The app does not download or unlock paid packs.
-
-## Try the APK
-
-Download the APK from the [v0.6 debug prerelease](https://github.com/tzii/magic-themer/releases/tag/v0.6.0-debug). This repository is private; sign into GitHub with repository access on your phone.
-
-Build the development APK using the instructions below. The output is `app/build/outputs/apk/debug/app-debug.apk`, signed with your local Android debug key. Generated APKs, checksums and personal theme files in `dist/` are not tracked in Git. See [validation](docs/VALIDATION.md) for tests and Android 16 emulator checks.
-
-Local-only diagnostics are `dist/Chic V6 Header Test.hnt` (the untouched working theme with only its matching titles changed) and `dist/Chic V6 Fixed.hnt` (that working base with the six app-icon additions from the supplied edited file). They are not included in this repository. Original author/designer credits and previews are preserved. Apply **Customize → Icons** in HONOR Themes to select the repaired icons; applying the entire theme also uses the base's wallpaper/system modules. No supplied third-party artwork is bundled with the APK.
-
-1. Install Magic Themer and a compatible icon pack.
-2. Tap **Choose pack**. In **Apps**, use **Needs icon** to find gaps, tap an app and choose a suggested icon or search all artwork. Browse **Pack icons** for alternatives. In **Theme**, leave **Whole icon pack** on, or turn it off for an installed-app-only first test.
-3. Edit the theme name and keep **HONOR (.hnt)** selected for the first test. Tap **Save theme** and save to internal storage `HONOR/Themes` if that folder is available in the file picker. Otherwise save to Downloads and copy there with the phone's Files app.
-4. Open HONOR Themes → Me → My downloads, then Customize → Icons. Select the exported theme's icons.
-5. If it is absent, tap **App info** in Magic Themer's save dialog or apply guide, choose **Force stop** in the system screen, then reopen Themes. This worked for the user's later export without rebooting. Keep the same file and record where it was saved; consult [device testing](docs/DEVICE_TESTING.md) if it is still missing.
-
-The user applies the theme in HONOR Themes. No public direct-apply API was located during this research. On some builds the importer may behave differently or be restricted.
-
-## Edit an existing theme
-
-Tap **Open .hnt** and choose a local file you can legitimately use. The editor supports ordinary ZIP themes containing `description.xml` with `HnTheme` or `HwTheme` metadata and an extensionless `icons` ZIP. Change **Theme name**, **Designer** or **Description**, then replace static package PNG icons using an installed pack. **Save theme copy** proposes a separate `Title-edited.hnt` document; the original selected document is not overwritten.
-
-Selecting a pack does not change an imported theme by itself. Assign individual icons in **Apps**, or tap **Apply whole pack to theme** in **Theme**. This merges the pack and keeps original icons for uncovered apps. **Replace existing icon set** is an explicit option to remove the old static package icons when applying a pack. **Use original** removes an app's custom theme icon; **Reset** restores the imported icon or current pack default. For a separately identifiable copy in HONOR Themes, change **Theme name** before saving; the proposed `-edited` filename does not change the internal theme title.
-
-Unchanged member contents, including existing wallpaper, font, system and lock-screen modules, are copied through. The editor cannot author those modules or reproduce their proprietary behavior. ZIP compression and edited metadata formatting may change; a saved copy still needs validation in HONOR Themes. Encrypted, signed or other unsupported theme formats are not promised.
-
-To convert an older minimal export, open it, leave **Repair theme compatibility** enabled in **Theme**, then save a copy. This option is restricted to the exact supported minimal legacy layout, including copies with edited designer credit. Other imported themes retain their existing metadata profile. When recovering edits from a rejected rewritten full theme, start with its untouched working original; raw preservation cannot restore packaging already lost in an earlier save.
+- Icons are static 192 px PNGs. Dynamic calendars and clocks, pack masks, backgrounds and scaling for unmapped apps aren't reproduced.
+- HONOR themes one icon per app package, so apps with several launcher activities share one icon.
+- New wallpapers, fonts, lock screens and system UI can't be created; imported ones are preserved.
+- Encrypted, signed or otherwise unusual theme formats aren't supported.
+- Icon artwork belongs to its creators. Keep themes made from packs for personal use unless the pack's author allows sharing.
 
 ## Build
 
-Open the project folder in Android Studio. Install Android SDK Platform 36 and Build Tools 36.0.0. Use a compatible JDK for Gradle 9.4; JDK 17–26 are supported by that Gradle release. The implementation uses AGP 9.1.0's built-in Kotlin support with a documented Kotlin 2.3.21 runtime override, Material Components 1.13.0 and RecyclerView 1.4.0. See [validation](docs/VALIDATION.md) for build results. This Kotlin/toolchain combination extends beyond JetBrains' fully tested compatibility matrix.
-
-Windows PowerShell, with Android Studio installed in its standard location:
+Requirements: Android SDK Platform 36 and Build Tools 36.0.0, and JDK 17 or newer (Android Studio's bundled JBR works).
 
 ```powershell
 $env:JAVA_HOME = 'C:\Program Files\Android\Android Studio\jbr'
@@ -90,22 +53,14 @@ $env:ANDROID_HOME = "$env:LOCALAPPDATA\Android\Sdk"
 .\gradlew.bat :app:assembleDebug :app:testDebugUnitTest :app:lintDebug
 ```
 
-The APK is created at `app/build/outputs/apk/debug/app-debug.apk`. SDK paths in `local.properties` are machine-specific and ignored. Wrapper distribution and JAR hashes were checked against [Gradle's published checksums](https://gradle.org/release-checksums/).
+On macOS or Linux use `./gradlew` with the same tasks. The debug APK is written to `app/build/outputs/apk/debug/app-debug.apk`.
 
-The separate `:qa:iconpack` module is an original synthetic icon pack for emulator tests. It is never bundled with the main APK. Build it with `:qa:iconpack:assembleDebug`; see its [README](qa/iconpack/README.md).
+For a signed release build, copy `keystore.properties.example` to `keystore.properties`, fill it in, and run `:app:assembleRelease`. Without that file the release APK is left unsigned. Keystores and `keystore.properties` are ignored by Git.
 
-## Limits and next milestones
+See [publishing on GitHub](docs/RELEASING.md) for signing, verification and release steps.
 
-- Icon application, unchanged wallpaper and persistence are confirmed for the user's v0.5 export, and A also applies icons. Immediate discovery remains unresolved; v0.6's save completion by rename and earlier edited-theme repairs still need phone verification.
-- HONOR themes an app only when its icon's resource package matches its installed package. Builds renamed after compilation, such as DroidDeck's AnTuTu, PUBG and Ludashi variants, keep their own icon under any theme. **Apps** marks them **HONOR can't theme**; see [research](docs/RESEARCH.md#8-october-icons-the-launcher-leaves-unthemed).
-- Only explicitly mapped or manually assigned icons are exported. Pack fallback masks, backgrounds and scale recipes are not applied to unmapped apps.
-- Package-level HONOR filenames mean one exported icon per app package. Multiple launcher activities cannot all have independent themed icons in this profile.
-- Calendars are a snapshot of the current day. Clock hands and launcher-specific monochrome tinting are not dynamic.
-- The gallery combines drawable.xml artwork and mapped icons. Drawables absent from both metadata files are not enumerated automatically.
-- Work profiles and cloned apps need separate investigation. New wallpapers, fonts, lock screens and system UI modules cannot be authored here; imported modules are preserved.
-- Import and export enforce icon, entry and byte limits. Import allows 256 MiB archives, 128 MiB members and 512 MiB aggregate expanded outer/inner data. New rendered icons retain a 64 MiB total PNG budget. Editing supports classic single-disk ZIP framing; ZIP64, encrypted, signed, prefixed or trailing-data archives are rejected when saving. Oversized or malformed archives are rejected.
-- Source research does not establish redistribution rights for third-party artwork. Keep pack-derived themes for your own use unless the creator allows sharing.
+`:qa:iconpack` is an original synthetic icon pack used for emulator tests; it isn't part of the app. See [validation](docs/VALIDATION.md) for the test procedure and [research](docs/RESEARCH.md) for how HONOR's theme format and engine behave.
 
-Next milestone: with Themes already running, save a fresh v0.6 export directly into `Honor/Themes` and check whether it appears without Force stop. If it does not, compare a manual move of the same finished archive into that folder. Retain the working v0.5 export, A/B/C and the Peafowl original locally. Full system and lock-screen authoring requires separate research.
+## License
 
-Research, primary sources and assumptions: [RESEARCH.md](docs/RESEARCH.md).
+Magic Themer is free software under the [GNU General Public License v3.0](LICENSE). See the [changelog](CHANGELOG.md) for version history.

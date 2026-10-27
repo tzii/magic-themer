@@ -1,5 +1,34 @@
 # Validation record
 
+## 27 October 2026: phone confirmation and public-release preparation
+
+After receiving the polished v0.7 debug APK, the user reported that it works fine on the target phone. This closes the outstanding general phone check for that build; it is not a separate test of every imported theme or device model.
+
+The user then authorized permanent release signing and GitHub publication. The public branch history was checked separately from local T3 checkpoint refs: no personal `.hnt`/`.hwt` fixtures, APKs, keystores, signing properties or machine-local SDK configuration were found in the branch history being published. Local checkpoint refs and ignored working files are not pushed.
+
+- A permanent RSA-4096 signing key was generated with a cryptographically random 256-bit password. The local keystore, signing configuration and self-contained password-manager recovery note are ignored by Git. The recovery note's encoded keystore was checked byte-for-byte against the actual key file.
+- Signed `:app:assembleRelease` and `:app:lintRelease` passed. Release lint reports zero errors and 57 warnings. `apksigner verify --verbose --print-certs` confirms APK Signature Scheme v2 and the permanent RSA-4096 signer. Public certificate SHA-256: `8f4e78877186c72e128376d60e231aa108ba8009ad59a44b534fc29216b9e460`.
+- Every extracted ZIP entry in the signed APK is byte-identical to the previously tested optimized unsigned build. Signing therefore changes the APK signature block without changing the tested application payload; the earlier minified runtime checks still apply.
+- Public installation artifact: `dist/Magic-Themer-0.7.0.apk`, **1,662,957 bytes**, SHA-256 `cf91ca75a78d81c0d329020c96770b92bda324bb6f281500c9392f5118024aa5`. The companion `.apk.sha256` file contains this checksum.
+
+## 26 October 2026: v0.7 polish and GitHub preparation
+
+The user confirmed that **Original icons** bypasses the applied custom theme on their HONOR Magic V5 / MagicOS 10. They also reported that the v0.6 export appeared without force-stopping Themes on that attempt. These are phone observations; emulator checks do not establish HONOR indexing behavior.
+
+- Debug and unsigned, R8-minified release assembly passed, together with `:app:testDebugUnitTest`, `:app:lintDebug` and the synthetic QA pack build. The JVM reports contain **86 passes**, zero failures/errors and two optional supplied-theme tests skipped. Lint reports zero errors and 58 warnings.
+- The Android 16 / API 36.1 phone emulator passed the conversion/editor smoke checks: empty state and disabled export, complete artwork catalogue, assignment persistence, whole-pack and installed-only exports, imported metadata/icon edits, whole-pack merge, unchanged source archive, wide dark layout and no app crash entries. Saved ZIPs and screenshots are retained under ignored `qa/output/v7/`.
+- A copy of the minified release APK, signed with the local debug key solely for emulator QA, passed the collapsing-header/pinned-tabs checks, Settings changes and persistence after restart, default pack title, custom title persistence, whole-pack export and import with the original designer preserved. The regular debug APK was restored afterwards. `polish-report.json` and the inspected portrait/Settings screenshots preserve the results.
+- The driver now handles **Choose pack** versus **Change**, reveals the collapsing toolbar before opening its menu, and expects a new theme to take its pack's name. The shorter empty-result summary is reflected in its QA check.
+- The first editor run was interrupted when the emulator disconnected. After restarting, reusing a filename deleted directly through ADB encountered a Downloads provider path failure; the app rejected the save. The same editor assertions then passed using fresh `QA Edited Retry` / `QA Merged Retry` filenames. Failure logs and provider diagnostics remain local; no archive assertions were removed.
+- Publication preparation includes GPL-3.0, a changelog, signing configuration/example and [release instructions](RELEASING.md). The tracked-file check found no APKs, personal theme files, keystores or signing properties, and no hard-coded user-directory paths in the text sources checked. GitHub publication remains with the owner.
+
+Artifacts:
+
+- `dist/Magic-Themer-0.7.0-debug.apk`: **6,782,112 bytes**, SHA-256 `4a1a46ae5eb4fcc443e47065d1ff432f39948c12e2a0cd2d1bb62d17aaaea84e`.
+- `dist/Magic-Themer-0.7.0-release-unsigned.apk`: **1,658,861 bytes**, SHA-256 `15ffca9feb964e7226bf6c932e67cdbdcd14495a655e311caa2e58561f34a349`. This is not an installable public release until signed with the owner's permanent key.
+
+The final layout still needs a phone check. A permanent release keystore is not configured, and no GitHub visibility, tag or release changes were made.
+
 ## 25 October 2026: v0.6 build and save-publication checks
 
 The final APK includes the new optimized adaptive launcher icon and its dedicated monochrome resource. Build isolation started from commit `94868108375013ee0a67983e6ef374682ce7d2bd`, overlaid this task's export/save changes and the user-authorized icon resources, and kept generated evidence under ignored `qa/output/v6/`. The original SVG remains unchanged.
@@ -52,8 +81,8 @@ The toolchain remains Android Studio JBR 25.0.2, Gradle 9.4.0, AGP 9.1.0, Kotlin
 ```powershell
 $env:JAVA_HOME = 'C:\Program Files\Android\Android Studio\jbr'
 $env:ANDROID_HOME = "$env:LOCALAPPDATA\Android\Sdk"
-$env:MAGIC_THEMER_COMPATIBILITY_THEME = 'C:\Users\simon\AppData\Local\Temp\chicv6 (1).hnt'
-$env:MAGIC_THEMER_EDITED_THEME = 'C:\Users\simon\AppData\Local\Temp\chicv6-edited.hnt'
+$env:MAGIC_THEMER_COMPATIBILITY_THEME = "$env:TEMP\chicv6 (1).hnt"
+$env:MAGIC_THEMER_EDITED_THEME = "$env:TEMP\chicv6-edited.hnt"
 $env:MAGIC_THEMER_DIAGNOSTIC_OUTPUT = "$PWD\dist"
 .\gradlew.bat :app:assembleDebug :app:testDebugUnitTest :app:lintDebug --offline --console=plain
 ```

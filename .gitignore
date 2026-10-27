@@ -6,6 +6,8 @@ local.properties
 **/build/
 *.jks
 *.keystore
+keystore.properties
+.signing/
 .DS_Store
 *.log
 qa/output/

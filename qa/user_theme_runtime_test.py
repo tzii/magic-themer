@@ -69,7 +69,7 @@ def verify(original, saved, repair=False):
 
 
 def open_theme(ui, filename, title):
-    ui.tap(ui.await_text("Open .hnt"))
+    ui.open_theme_file()
     ui.open_fixture(filename)
     ui.await_text(title, contains=True, timeout=180)
     deadline = time.monotonic() + 180
@@ -91,8 +91,8 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--serial", default="emulator-5556")
     parser.add_argument("--adb", default="adb")
-    parser.add_argument("--working", default="C:/Users/simon/AppData/Local/Temp/chicv6.hnt")
-    parser.add_argument("--failed", default="C:/Users/simon/AppData/Local/Temp/My Magic Icons.hnt")
+    parser.add_argument("--working", default=str(Path(tempfile.gettempdir()) / "chicv6.hnt"))
+    parser.add_argument("--failed", default=str(Path(tempfile.gettempdir()) / "My Magic Icons.hnt"))
     args = parser.parse_args()
     out = ROOT / "qa/output/v3"
     ui = Driver(args.serial, out, args.adb)

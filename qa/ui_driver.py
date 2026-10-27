@@ -19,11 +19,17 @@ class Driver:
         result = subprocess.run([self.binary, "-s", self.serial, *parts], capture_output=True, check=check)
         return result.stdout.decode("utf-8", errors="replace")
 
-    def state(self):
-        self.adb("shell", "uiautomator", "dump", "/sdcard/magic-themer-ui.xml")
-        xml = self.adb("shell", "cat", "/sdcard/magic-themer-ui.xml")
-        (self.output / "last-ui.xml").write_text(xml, encoding="utf-8")
-        return list(ET.fromstring(xml).iter("node"))
+    def state(self, attempts=10):
+        # uiautomator gives up while the UI is still settling, e.g. just after launch; retry briefly.
+        for _ in range(attempts):
+            self.adb("shell", "rm", "-f", "/sdcard/magic-themer-ui.xml", check=False)
+            self.adb("shell", "uiautomator", "dump", "/sdcard/magic-themer-ui.xml", check=False)
+            xml = self.adb("shell", "cat", "/sdcard/magic-themer-ui.xml", check=False)
+            if xml.lstrip().startswith("<?xml"):
+                (self.output / "last-ui.xml").write_text(xml, encoding="utf-8")
+                return list(ET.fromstring(xml).iter("node"))
+            time.sleep(0.5)
+        raise AssertionError("uiautomator could not dump the UI")
 
     def find(self, text, nodes=None, contains=False):
         for node in nodes if nodes is not None else self.state():
@@ -68,6 +74,30 @@ class Driver:
         self.adb("shell", "input", "tap", str((x1 + x2) // 2), str((y1 + y2) // 2))
         time.sleep(0.4)
 
+    def open_theme_file(self):
+        """The Open .hnt button only shows before a source is chosen; the menu entry always works."""
+        self.tap(self.header_control("More options"))
+        self.tap(self.await_text("Open theme file"))
+
+    def header_control(self, *labels):
+        """Reveal the collapsing toolbar/source card by scrolling back toward the top."""
+        for _ in range(5):
+            nodes = self.state()
+            for label in labels:
+                node = self.find(label, nodes)
+                if node is not None and node.get("bounds") != "[0,0][0,0]":
+                    return node
+            # CoordinatorLayout also advertises scrolling; drag the actual inner list/form.
+            scroll = next((n for n in reversed(nodes) if n.get("scrollable") == "true"
+                           and "Horizontal" not in n.get("class", "")), None)
+            assert scroll is not None, f"No scroll container to reveal {labels}"
+            left, top, right, bottom = self.bounds(scroll)
+            x = (left + right) // 2
+            self.adb("shell", "input", "swipe", str(x), str(top + (bottom - top) // 4),
+                     str(x), str(top + (bottom - top) * 3 // 4), "300")
+            time.sleep(0.3)
+        raise AssertionError(f"Could not reveal header control {labels}")
+
     @staticmethod
     def bounds(node):
         coords = list(map(int, re.findall(r"\d+", node.get("bounds", ""))))
@@ -97,7 +127,9 @@ class Driver:
         assert node is not None, "Text input missing; refuse to type into a label"
         self.tap(node)
         self.adb("shell", "input", "keycombination", "KEYCODE_CTRL_LEFT", "KEYCODE_A")
-        self.adb("shell", "input", "text", value.replace(" ", "%s"))
+        self.adb("shell", "input", "keyevent", "KEYCODE_DEL")
+        if value:
+            self.adb("shell", "input", "text", value.replace(" ", "%s"))
         self.adb("shell", "input", "keyevent", "KEYCODE_BACK")
 
     def screenshot(self, name):
@@ -107,7 +139,20 @@ class Driver:
     def start(self):
         self.adb("shell", "am", "force-stop", "dev.magicthemer")
         self.adb("shell", "am", "start", "-f", "0x10008000", "-n", "dev.magicthemer/.MainActivity")
-        self.await_enabled("Choose pack", timeout=180)
+        # Choose pack shows until a source is chosen; afterwards the pack card offers Change.
+        deadline = time.monotonic() + 180
+        while time.monotonic() < deadline:
+            nodes = self.state()
+            node = self.find("Choose pack", nodes)
+            if node is None:
+                node = self.find("Change", nodes)
+            if node is not None and node.get("enabled") == "true":
+                return
+            time.sleep(0.4)
+        raise AssertionError("Magic Themer did not finish loading; see last-ui.xml")
+
+    def choose_pack(self):
+        self.tap(self.header_control("Choose pack", "Change"))
 
     def downloads(self):
         nodes = self.state()

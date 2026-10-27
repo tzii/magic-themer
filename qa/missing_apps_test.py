@@ -23,7 +23,7 @@ def main():
     ui = Driver(args.serial, out, args.adb)
     ui.adb("shell", "pm", "clear", "dev.magicthemer")
     ui.start()
-    ui.tap(ui.await_text("Choose pack"))
+    ui.choose_pack()
     ui.tap(ui.await_text("Magic Themer QA Pack", contains=True))
     before, chip = count(ui, "Needs icon")
     assert before > 0
@@ -41,7 +41,7 @@ def main():
     ui.tap(suggestion)
     after, _ = count(ui, "Needs icon")
     assert after == before - 1, (before, after)
-    ui.await_text("No apps match this filter.")
+    ui.await_text("No apps match")
     _, customized = count(ui, "Customized")
     ui.tap(customized)
     assert "Customized" in ui.await_app("com.android.vending").get("content-desc", "")

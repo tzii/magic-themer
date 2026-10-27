@@ -191,10 +191,10 @@ def edit_theme_name(ui, previous, value):
 
 
 def fresh_theme(ui, output):
-    ui.tap(ui.await_text("More options"))
+    ui.tap(ui.header_control("More options"))
     ui.tap(ui.await_text("New theme"))
     ui.await_enabled("Save theme", timeout=180)
-    edit_theme_name(ui, "My Magic Icons", "QA V4 Fresh")
+    edit_theme_name(ui, "Magic Themer QA Pack", "QA V4 Fresh")
     whole = ui.reveal("Whole icon pack")
     assert whole.get("checked") == "true"
     ui.tap(ui.await_enabled("Save theme"))
@@ -211,7 +211,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--serial", default="emulator-5556")
     parser.add_argument("--adb", default="adb")
-    parser.add_argument("--working", default="C:/Users/simon/AppData/Local/Temp/chicv6 (1).hnt")
+    parser.add_argument("--working", default=str(Path(tempfile.gettempdir()) / "chicv6 (1).hnt"))
     parser.add_argument("--output", default="qa/output/v4")
     args = parser.parse_args()
     output = ROOT / args.output
@@ -240,7 +240,7 @@ def main():
     # copies in the emulator's smaller data partition during the next export.
     ui.adb("shell", "rm", "-f", "'/sdcard/Download/QA V4 Untouched.hnt'")
 
-    ui.tap(ui.await_text("Choose pack"))
+    ui.choose_pack()
     ui.tap(ui.await_text("Magic Themer QA Pack", contains=True))
     ui.await_enabled("Save theme copy", timeout=180)
     edit_theme_name(ui, original_title, "QA V4 Merged")

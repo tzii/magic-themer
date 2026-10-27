@@ -13,7 +13,7 @@ Toolchain: Android Studio JBR 25.0.2, Gradle 9.4.0, AGP 9.1.0, Kotlin runtime ov
 ```powershell
 $env:JAVA_HOME = 'C:\Program Files\Android\Android Studio\jbr'
 $env:ANDROID_HOME = "$env:LOCALAPPDATA\Android\Sdk"
-$env:MAGIC_THEMER_COMPATIBILITY_THEME = 'C:\Users\simon\AppData\Local\Temp\chicv6.hnt'
+$env:MAGIC_THEMER_COMPATIBILITY_THEME = "$env:TEMP\chicv6.hnt"
 .\gradlew.bat :app:assembleDebug :app:testDebugUnitTest :app:lintDebug :qa:iconpack:assembleDebug --offline --console=plain
 ```
 
