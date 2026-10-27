@@ -98,7 +98,7 @@ def main():
     ui = Driver(args.serial, out, args.adb)
     inputs = [Path(args.working), Path(args.failed)]
     initial_hashes = [hashlib.sha256(path.read_bytes()).hexdigest() for path in inputs]
-    ui.adb("shell", "pm", "clear", "dev.magicthemer")
+    ui.adb("shell", "pm", "clear", "com.tzii.magicthemer")
     ui.adb("shell", "logcat", "-c")
     for path in inputs:
         ui.adb("push", str(path), "/sdcard/Download/" + path.name)
@@ -136,7 +136,7 @@ def main():
     assert initial_hashes == final_hashes
     report["inputs_unchanged"] = True
     report["device_acceptance"] = "awaiting phone check"
-    assert "dev.magicthemer" not in ui.adb("logcat", "-d", "-b", "crash")
+    assert "com.tzii.magicthemer" not in ui.adb("logcat", "-d", "-b", "crash")
     (out / "user-theme-runtime-report.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
     print("PASS: legacy profile repaired through UI; all 7,404 source PNGs identical", flush=True)
 

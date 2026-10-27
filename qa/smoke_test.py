@@ -27,9 +27,9 @@ def main():
     original_hash = hashlib.sha256(fixture.read_bytes()).hexdigest()
     if args.editor_only:
         report = {"whole": check_new(out / "QA Whole Pack.hnt",
-                  ["com.android.settings", "dev.magicthemer", "dev.magicthemer.fixture", "com.example.future"], "QA Whole Pack"),
+                  ["com.android.settings", "com.tzii.magicthemer", "dev.magicthemer.fixture", "com.example.future"], "QA Whole Pack"),
                   "installed": check_new(out / "QA Installed.hnt",
-                  ["com.android.settings", "dev.magicthemer", "dev.magicthemer.fixture"], "QA Installed")}
+                  ["com.android.settings", "com.tzii.magicthemer", "dev.magicthemer.fixture"], "QA Installed")}
         ui.start()
         ui.await_text("Magic Themer")
         editor_checks(ui, out, fixture, original_hash, report)
@@ -39,7 +39,7 @@ def main():
     ui.adb("push", str(fixture), "/sdcard/Download/QA Base.hnt")
     ui.adb("install", "-r", str(ROOT / "app/build/outputs/apk/debug/app-debug.apk"))
     ui.adb("uninstall", "dev.magicthemer.fixture", check=False)
-    ui.adb("shell", "pm", "clear", "dev.magicthemer")
+    ui.adb("shell", "pm", "clear", "com.tzii.magicthemer")
     ui.adb("logcat", "-c")
     ui.start()
     ui.await_text("Choose pack")
@@ -62,13 +62,13 @@ def main():
 
     ui.tap(ui.find("Apps"))
     ui.edit(ui.await_text("Search apps or packages"), "Magic Themer")
-    ui.tap(ui.await_app("dev.magicthemer"))
+    ui.tap(ui.await_app("com.tzii.magicthemer"))
     ui.tap(ui.await_text("Alternative tile", contains=True))
     ui.start()
     ui.await_text("Pack icons")
-    preferences = ui.adb("shell", "run-as", "dev.magicthemer", "ls", "shared_prefs")
+    preferences = ui.adb("shell", "run-as", "com.tzii.magicthemer", "ls", "shared_prefs")
     assert preferences.strip()
-    saved = ui.adb("shell", "run-as", "dev.magicthemer", "cat", "shared_prefs/builder.xml")
+    saved = ui.adb("shell", "run-as", "com.tzii.magicthemer", "cat", "shared_prefs/builder.xml")
     assert "alternative_tile" in saved
     print("PASS: visual assignment survives restart", flush=True)
 
@@ -81,7 +81,7 @@ def main():
     dismiss_saved(ui)
     whole_path = pull(ui, out, "QA Whole Pack.hnt")
     report = {"whole": check_new(whole_path,
-        ["com.android.settings", "dev.magicthemer", "dev.magicthemer.fixture", "com.example.future"], "QA Whole Pack")}
+        ["com.android.settings", "com.tzii.magicthemer", "dev.magicthemer.fixture", "com.example.future"], "QA Whole Pack")}
     print("PASS: whole pack exports absent-app mapping and skips missing drawable", flush=True)
 
     ui.tap(ui.find("Theme"))
@@ -93,7 +93,7 @@ def main():
     dismiss_saved(ui)
     installed = pull(ui, out, "QA Installed.hnt")
     report["installed"] = check_new(installed,
-        ["com.android.settings", "dev.magicthemer", "dev.magicthemer.fixture"], "QA Installed")
+        ["com.android.settings", "com.tzii.magicthemer", "dev.magicthemer.fixture"], "QA Installed")
     print("PASS: installed-only scope excludes absent-app mapping", flush=True)
 
     ui.tap(ui.await_text("Whole icon pack", contains=True))
@@ -135,7 +135,7 @@ def editor_checks(ui, out, fixture, original_hash, report):
     dismiss_saved(ui)
     merged = pull(ui, out, "QA Merged-edited.hnt")
     report["merged"] = check_edit(fixture, merged, "QA Merged",
-        ["com.android.settings", "org.example.uninstalled", "dev.magicthemer", "dev.magicthemer.fixture", "com.example.future"])
+        ["com.android.settings", "org.example.uninstalled", "com.tzii.magicthemer", "dev.magicthemer.fixture", "com.example.future"])
     print("PASS: explicit whole-pack merge preserves unrelated existing icon", flush=True)
     remote_original = out / "QA Base pulled.hnt"
     ui.adb("pull", "/sdcard/Download/QA Base.hnt", str(remote_original))
@@ -155,7 +155,7 @@ def editor_checks(ui, out, fixture, original_hash, report):
     report["magic_os_applied"] = False
     (out / "archive-report.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
     crashes = ui.adb("logcat", "-d", "-b", "crash")
-    assert "dev.magicthemer" not in crashes, crashes
+    assert "com.tzii.magicthemer" not in crashes, crashes
     print("PASS: wide dark mode and no app crash entries", flush=True)
     print("All emulator checks passed. HONOR Themes acceptance needs phone testing.", flush=True)
 

@@ -1,5 +1,15 @@
 # Validation record
 
+## 27 October 2026: v0.7.1 application ID
+
+At the user's request, the installed application ID changed to `com.tzii.magicthemer`, following ThystTV's developer naming. The visible name remains Magic Themer. Version is **0.7.1 / code 8**. The internal Kotlin namespace stays unchanged; the built APK's manifest and compiled resource package both use the new application ID.
+
+- Debug/release assembly, JVM unit tests, release lint and the updated synthetic QA pack build passed. JVM reports: **86 passed**, zero failures/errors, two optional supplied-theme tests skipped. Release lint: zero errors, 57 warnings.
+- APK Signature Scheme v2 verifies. The RSA-4096 certificate SHA-256 remains `8f4e78877186c72e128376d60e231aa108ba8009ad59a44b534fc29216b9e460`, matching v0.7.0 and the owner's existing key backup.
+- Current QA scripts and the synthetic pack target the new application ID. The historical v0.2→v0.3 migration check explicitly retains the old ID. Release notes and installation instructions explain separate installation and exporting themes from the old app.
+- The actual production-signed APK passed the phone-emulator check: new-ID installation and launch, matching icon resources (the app is themeable), original-icon and custom-assignment persistence across restart, whole-pack export containing `com.tzii.magicthemer.png`, and theme import retaining the original credits. Both application IDs remained installed, and the old app's saved preferences file stayed byte-identical. No crash entries occurred. Evidence is ignored under `qa/output/v7.1/`.
+- Release artifact: `dist/Magic-Themer-0.7.1.apk`, **1,663,001 bytes**, SHA-256 `9025ae5d67d32d7514a896ef6c39c86dcd8e9a8ea771d2a6d358926438c5492f`.
+
 ## 27 October 2026: phone confirmation and public-release preparation
 
 After receiving the polished v0.7 debug APK, the user reported that it works fine on the target phone. This closes the outstanding general phone check for that build; it is not a separate test of every imported theme or device model.

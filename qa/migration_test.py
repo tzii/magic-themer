@@ -16,7 +16,7 @@ def main():
     parser.add_argument("--adb", default="adb")
     args = parser.parse_args()
     out = ROOT / "qa/output/v3"
-    ui = Driver(args.serial, out, args.adb)
+    ui = Driver(args.serial, out, args.adb, package="dev.magicthemer")
     ui.adb("shell", "pm", "clear", "dev.magicthemer")
     ui.adb("install", "-r", "-d", str(ROOT / "dist/Magic-Themer-0.2.0-debug.apk"))
     ui.adb("push", str(out / "QA Base pulled.hnt"), "/sdcard/Download/QA Base.hnt")

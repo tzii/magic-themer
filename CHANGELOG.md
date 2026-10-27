@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.7.1
+
+- Android application ID is now `com.tzii.magicthemer`, matching the developer naming used by ThystTV. The visible name remains Magic Themer, and the permanent release signing key is unchanged.
+- Android installs this as a separate app from v0.7.0 and earlier (`dev.magicthemer`). Export any themes you want to keep from the old app, then open them in the new app. Saved settings and assignments do not transfer automatically.
+
 ## 0.7.0
 
 First public release, under the GNU GPL v3.

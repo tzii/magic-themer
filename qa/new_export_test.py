@@ -16,7 +16,7 @@ def main():
     args = parser.parse_args()
     out = ROOT / "qa/output/v3"
     ui = Driver(args.serial, out, args.adb)
-    ui.adb("shell", "pm", "clear", "dev.magicthemer")
+    ui.adb("shell", "pm", "clear", "com.tzii.magicthemer")
     ui.adb("shell", "rm", "-f", "'/sdcard/Download/QA Final Pack.hnt'")
     ui.start()
     ui.choose_pack()
@@ -26,14 +26,14 @@ def main():
     ui.edit(ui.await_text("Magic Themer QA Pack"), "QA Final Pack")
     ui.tap(ui.find("Save theme"))
     ui.await_text("Save", timeout=60)
-    files = ui.adb("shell", "run-as", "dev.magicthemer", "ls", "files/theme-work")
+    files = ui.adb("shell", "run-as", "com.tzii.magicthemer", "ls", "files/theme-work")
     assert "export-" in files
     ui.save_document()
     dismiss_saved(ui)
     path = pull(ui, out, "QA Final Pack.hnt")
     report = check_new(path,
-        ["com.android.settings", "dev.magicthemer", "dev.magicthemer.fixture", "com.example.future"], "QA Final Pack")
-    assert "dev.magicthemer" not in ui.adb("logcat", "-d", "-b", "crash")
+        ["com.android.settings", "com.tzii.magicthemer", "dev.magicthemer.fixture", "com.example.future"], "QA Final Pack")
+    assert "com.tzii.magicthemer" not in ui.adb("logcat", "-d", "-b", "crash")
     (out / "final-new-export-report.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
     print("PASS: final APK stages a new theme privately and saves the whole mapped pack", flush=True)
 

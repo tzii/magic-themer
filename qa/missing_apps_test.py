@@ -21,7 +21,7 @@ def main():
     args = parser.parse_args()
     out = ROOT / "qa/output/v3"
     ui = Driver(args.serial, out, args.adb)
-    ui.adb("shell", "pm", "clear", "dev.magicthemer")
+    ui.adb("shell", "pm", "clear", "com.tzii.magicthemer")
     ui.start()
     ui.choose_pack()
     ui.tap(ui.await_text("Magic Themer QA Pack", contains=True))
@@ -51,7 +51,7 @@ def main():
     assert persisted_chip.get("checked") == "true"
     node = ui.await_app("com.android.vending")
     assert "Customized" in node.get("content-desc", "")
-    saved = ui.adb("shell", "run-as", "dev.magicthemer", "cat", "shared_prefs/builder.xml")
+    saved = ui.adb("shell", "run-as", "com.tzii.magicthemer", "cat", "shared_prefs/builder.xml")
     assert "play_store_alternative" in saved
     ui.tap(node)
     ui.tap(ui.await_text("Reset"))
@@ -60,7 +60,7 @@ def main():
     ui.tap(chip)
     ui.edit(ui.await_text("Search apps or packages"), "com.android.vending")
     assert "Needs icon" in ui.await_app("com.android.vending").get("content-desc", "")
-    assert "dev.magicthemer" not in ui.adb("logcat", "-d", "-b", "crash")
+    assert "com.tzii.magicthemer" not in ui.adb("logcat", "-d", "-b", "crash")
     report = {"missing_before": before, "missing_after_assignment": after,
               "invalid_mapped_resource_marked_missing": True, "one_tap_suggestion": True,
               "assignment_and_filter_survive_restart": True, "reset_restores_missing": True}

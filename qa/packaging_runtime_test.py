@@ -24,7 +24,7 @@ ROOT = Path(__file__).resolve().parents[1]
 MAX_ARCHIVE = 256 * 1024 * 1024
 MAX_MEMBER = 128 * 1024 * 1024
 CHUNK = 65536
-PACKAGES = {"com.android.settings", "dev.magicthemer", "dev.magicthemer.fixture", "com.example.future"}
+PACKAGES = {"com.android.settings", "com.tzii.magicthemer", "dev.magicthemer.fixture", "com.example.future"}
 REMOTE_NAMES = ("QA V4 Base.hnt", "QA V4 Untouched.hnt", "QA V4 Merged-edited.hnt", "QA V4 Fresh.hnt")
 PACKAGE = re.compile(r"[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)+")
 
@@ -224,7 +224,7 @@ def main():
     assert original_title
     ui.adb("install", "-r", str(ROOT / "app/build/outputs/apk/debug/app-debug.apk"))
     ui.adb("install", "-r", str(ROOT / "qa/iconpack/build/outputs/apk/debug/iconpack-debug.apk"))
-    ui.adb("shell", "pm", "clear", "dev.magicthemer")
+    ui.adb("shell", "pm", "clear", "com.tzii.magicthemer")
     ui.adb("shell", "logcat", "-c")
     for name in REMOTE_NAMES:
         ui.adb("shell", "rm", "-f", "'/sdcard/Download/" + name + "'")
@@ -260,7 +260,7 @@ def main():
     remote_hash = ui.adb("shell", "sha256sum", "'/sdcard/Download/QA V4 Base.hnt'").split()[0]
     assert remote_hash == original_hash, "Imported emulator input changed"
     crashes = ui.adb("logcat", "-d", "-b", "crash")
-    assert "dev.magicthemer" not in crashes, crashes
+    assert "com.tzii.magicthemer" not in crashes, crashes
     report.update({"input_sha256": original_hash, "inputs_unchanged": True, "app_crash_entries": False,
                    "device_acceptance": "awaiting phone check"})
     (output / "packaging-runtime-report.json").write_text(json.dumps(report, indent=2), encoding="utf-8")

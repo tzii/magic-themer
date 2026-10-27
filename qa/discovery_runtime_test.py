@@ -18,7 +18,7 @@ from ui_driver import Driver
 
 ROOT = Path(__file__).resolve().parents[1]
 FILENAME = "QA_V6_Discovery.hnt"
-PACKAGES = ["com.android.settings", "dev.magicthemer", "dev.magicthemer.fixture", "com.example.future"]
+PACKAGES = ["com.android.settings", "com.tzii.magicthemer", "dev.magicthemer.fixture", "com.example.future"]
 EXPECTED_ENTRIES = {
     "preview/preview_icons_0.jpg", "preview/preview_unlock_0.jpg", "preview/icon_small.jpg", "preview/",
     "unlock/theme.xml", "unlock/", "description.xml", "icons",
@@ -37,7 +37,7 @@ def main():
     assert not ui.adb("shell", "pm", "path", "com.huawei.android.thememanager", check=False).strip()
     ui.adb("install", "-r", str(args.apk))
     ui.adb("install", "-r", str(ROOT / "qa/iconpack/build/outputs/apk/debug/iconpack-debug.apk"))
-    ui.adb("shell", "pm", "clear", "dev.magicthemer")
+    ui.adb("shell", "pm", "clear", "com.tzii.magicthemer")
     ui.adb("shell", "rm", "-f", "/sdcard/Download/" + FILENAME)
     ui.start()
     ui.choose_pack()

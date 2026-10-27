@@ -28,12 +28,14 @@ Install the signed APK on the target phone and check pack selection, original ic
 
 Review `git diff` and the files being committed. Local themes, test output, APKs, signing keys and signing properties are ignored and should stay out of Git. The privacy statement is in the README and Settings: the app works offline, has no network permission, and has no accounts or analytics.
 
-Commit the release source, push it and make the repository public when ready. Create the `v0.7.0` tag on that commit and a GitHub release using the 0.7.0 entry in `CHANGELOG.md`. Attach the verified signed APK under a clear name such as `Magic-Themer-0.7.0.apk`, along with its SHA-256 from `Get-FileHash -Algorithm SHA256`. Keep the corresponding source available under GPL-3.0.
+Commit the release source and push it. Create the version's tag on that commit and a GitHub release using its entry in `CHANGELOG.md`. Attach the verified signed APK under a clear name such as `Magic-Themer-0.7.1.apk`, along with its SHA-256 from `Get-FileHash -Algorithm SHA256`. Keep the corresponding source available under GPL-3.0.
 
 The unsigned release APK cannot be installed. Do not attach it as the public installation download. See [validation](VALIDATION.md) for the checks completed locally and their limits.
 
 ## Existing release key
 
 The permanent release key was created for v0.7.0 on 27 October 2026. Future updates must reuse it. Its public certificate SHA-256 is `8f4e78877186c72e128376d60e231aa108ba8009ad59a44b534fc29216b9e460`.
+
+The application ID changed once, from `dev.magicthemer` to `com.tzii.magicthemer`, in v0.7.1. That release installs separately from earlier versions; future updates must keep both the new ID and the existing release key.
 
 The local keystore and filled signing properties are ignored by Git. Keep a private backup in your password manager before moving or deleting the checkout. A public certificate fingerprint cannot restore the signing key. Do not generate a replacement key for an ordinary update.

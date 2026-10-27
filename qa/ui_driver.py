@@ -7,13 +7,14 @@ import time
 
 
 class Driver:
-    def __init__(self, serial, output, adb="adb"):
+    def __init__(self, serial, output, adb="adb", package="com.tzii.magicthemer"):
         if not serial.startswith("emulator-"):
             raise ValueError("This QA driver only operates on an Android emulator.")
         self.serial = serial
         self.output = Path(output)
         self.output.mkdir(parents=True, exist_ok=True)
         self.binary = adb
+        self.package = package
 
     def adb(self, *parts, check=True):
         result = subprocess.run([self.binary, "-s", self.serial, *parts], capture_output=True, check=check)
@@ -137,8 +138,8 @@ class Driver:
         self.adb("pull", "/sdcard/magic-themer-shot.png", str(self.output / name))
 
     def start(self):
-        self.adb("shell", "am", "force-stop", "dev.magicthemer")
-        self.adb("shell", "am", "start", "-f", "0x10008000", "-n", "dev.magicthemer/.MainActivity")
+        self.adb("shell", "am", "force-stop", self.package)
+        self.adb("shell", "am", "start", "-f", "0x10008000", "-n", f"{self.package}/dev.magicthemer.MainActivity")
         # Choose pack shows until a source is chosen; afterwards the pack card offers Change.
         deadline = time.monotonic() + 180
         while time.monotonic() < deadline:

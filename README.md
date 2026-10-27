@@ -21,7 +21,7 @@ Tested on an **HONOR Magic V5, MagicOS 10** (EU). Other HONOR and Huawei devices
 
 Download the APK from [Releases](https://github.com/tzii/magic-themer/releases) and install it. Install any icon packs from Google Play as usual. Magic Themer doesn't download or unlock paid packs.
 
-If upgrading from an earlier debug preview, export any theme you want to keep, then uninstall the preview before installing the public release. The signing keys differ, and uninstalling clears the app's saved assignments and settings. Future public releases use the same permanent signing key.
+From v0.7.1, the Android application ID is `com.tzii.magicthemer`. Android installs it as a separate app from v0.7.0 and earlier (`dev.magicthemer`), so both can coexist. Export any themes you want to keep from the old app, then open them in the new app. Saved settings and assignments do not transfer automatically. The public releases use the same permanent signing key.
 
 ## Make a theme
 

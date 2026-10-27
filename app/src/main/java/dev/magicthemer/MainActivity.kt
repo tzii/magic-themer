@@ -464,7 +464,7 @@ class MainActivity : AppCompatActivity() {
         fun activities(intent: Intent) = if (Build.VERSION.SDK_INT >= 33) packageManager.queryIntentActivities(intent, PackageManager.ResolveInfoFlags.of(0))
             else { @Suppress("DEPRECATION") packageManager.queryIntentActivities(intent, 0) }
         fun viewers(type: String) = runCatching {
-            activities(Intent(Intent.ACTION_VIEW).setDataAndType(android.net.Uri.parse("content://dev.magicthemer/media"), type))
+            activities(Intent(Intent.ACTION_VIEW).setDataAndType(android.net.Uri.parse("content://$packageName/media"), type))
                 .mapNotNullTo(hashSetOf()) { it.activityInfo?.packageName }
         }.getOrDefault(emptySet())
         val browsers = runCatching {
