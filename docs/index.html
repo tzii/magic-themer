@@ -1,0 +1,451 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Magic Themer · icon packs for HONOR</title>
+<meta name="description" content="Magic Themer turns the Android icon packs you already have into HONOR / MagicOS icon themes. Free, offline and open source: no ads, accounts, analytics or network access.">
+<meta name="author" content="Simone Perini">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" id="theme-color" content="#f3f7ea">
+<meta name="referrer" content="no-referrer">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Magic Themer">
+<meta property="og:title" content="Magic Themer · icon packs for HONOR">
+<meta property="og:description" content="Turn the icon packs you already have into HONOR / MagicOS icon themes. Free, offline, open source.">
+<meta property="og:url" content="https://tzii.github.io/magic-themer/">
+<meta property="og:image" content="https://tzii.github.io/magic-themer/images/icon-256.png">
+<meta name="twitter:card" content="summary">
+<link rel="canonical" href="https://tzii.github.io/magic-themer/">
+<link rel="icon" href="./images/icon-256.png" type="image/png">
+<link rel="apple-touch-icon" href="./images/icon-256.png">
+<link rel="preload" href="./fonts/mona-sans.woff2" as="font" type="font/woff2" crossorigin>
+<script>
+  /* Saved theme before first paint; with nothing saved, CSS follows the system. */
+  (() => {
+    const root = document.documentElement;
+    try { const t = localStorage.getItem('magic-themer-theme'); if (t === 'dark' || t === 'light') root.dataset.theme = t; } catch {}
+    const dark = root.dataset.theme ? root.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+    document.getElementById('theme-color').content = dark ? '#0c1c1d' : '#f3f7ea';
+    root.classList.add('js');
+  })();
+</script>
+<link rel="stylesheet" href="./styles.css">
+<script defer src="./script.js"></script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Magic Themer","operatingSystem":"Android 8.0+","applicationCategory":"UtilitiesApplication","softwareVersion":"0.7.1","license":"https://www.gnu.org/licenses/gpl-3.0.html","offers":{"@type":"Offer","price":"0","priceCurrency":"EUR"},"author":{"@type":"Person","name":"Simone Perini","url":"https://tzii.github.io/"},"downloadUrl":"https://github.com/tzii/magic-themer/releases/latest","codeRepository":"https://github.com/tzii/magic-themer"}</script>
+</head>
+<body id="top">
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-out" viewBox="0 0 24 24"><path d="M7 17 17 7M8 7h9v9"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 4v12M6 11l6 6 6-6M5 21h14"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4 8.5 8.5 0 1 0 20 14.5Z"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+  <symbol id="i-git" viewBox="0 0 24 24"><path d="M9 19c-4 1.3-4-2-6-2.5M15 21v-3.4a3 3 0 0 0-.8-2.3c2.8-.3 5.8-1.4 5.8-6.3a4.9 4.9 0 0 0-1.3-3.4 4.6 4.6 0 0 0-.1-3.4s-1.1-.3-3.5 1.3a12 12 0 0 0-6.2 0C6.5 2 5.4 2.3 5.4 2.3a4.6 4.6 0 0 0-.1 3.4A4.9 4.9 0 0 0 4 9.1c0 4.9 3 6 5.8 6.3a3 3 0 0 0-.8 2.3V21"/></symbol>
+  <symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 2c.6 4.8 2.4 7.6 8 10-5.6 2.4-7.4 5.2-8 10-.6-4.8-2.4-7.6-8-10 5.6-2.4 7.4-5.2 8-10Z"/></symbol>
+  <symbol id="i-wand" viewBox="0 0 24 24"><path d="m4 20 11-11M13 7l2-2 4 4-2 2M17 3v2M21 7h-2M19.5 4.5 18 6"/></symbol>
+  <symbol id="i-zoom" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5M8 10.5h5M10.5 8v5"/></symbol>
+  <symbol id="i-prev" viewBox="0 0 24 24"><path d="m15 5-7 7 7 7"/></symbol>
+  <symbol id="i-next" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+  <!-- App glyphs for the demo phone -->
+  <symbol id="g-camera" viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></symbol>
+  <symbol id="g-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="g-music" viewBox="0 0 24 24"><path d="M9 18V6l10-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/></symbol>
+  <symbol id="g-map" viewBox="0 0 24 24"><path d="M12 21s-6-5.5-6-11a6 6 0 0 1 12 0c0 5.5-6 11-6 11z"/><circle cx="12" cy="10" r="2.2"/></symbol>
+  <symbol id="g-mail" viewBox="0 0 24 24"><rect x="3.5" y="6" width="17" height="12" rx="2"/><path d="m4 7 8 6 8-6"/></symbol>
+  <symbol id="g-chat" viewBox="0 0 24 24"><path d="M5 5h14v10H9l-4 4z"/><path d="M9 10h.01M12 10h.01M15 10h.01"/></symbol>
+  <symbol id="g-calendar" viewBox="0 0 24 24"><rect x="4" y="5.5" width="16" height="14" rx="2"/><path d="M4 10h16M8 3.5v4M16 3.5v4"/></symbol>
+  <symbol id="g-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/></symbol>
+  <symbol id="g-photo" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="2"/><path d="m4 16 5-5 4 4 2-2 5 5"/><circle cx="15.5" cy="9" r="1.5"/></symbol>
+  <symbol id="g-weather" viewBox="0 0 24 24"><path d="M9 5.5a3.5 3.5 0 0 1 3.4 2.6M4.5 9a4.5 4.5 0 0 1 .2-1.3M9 2v1.2M3 4l.9.9"/><path d="M8 19h9a3.5 3.5 0 0 0 0-7 5 5 0 0 0-9.6 1.4A2.8 2.8 0 0 0 8 19z"/></symbol>
+  <symbol id="g-notes" viewBox="0 0 24 24"><path d="M5 19l1-4L16 5l3 3L9 18z"/><path d="M14 7l3 3"/></symbol>
+  <symbol id="g-video" viewBox="0 0 24 24"><rect x="3.5" y="6" width="17" height="12" rx="3"/><path d="m10.5 9.5 4 2.5-4 2.5z"/></symbol>
+  <!-- Feature doodles -->
+  <symbol id="f-pack" viewBox="0 0 24 24"><rect x="3" y="3" width="8" height="8" rx="2.5"/><rect x="13" y="3" width="8" height="8" rx="2.5"/><rect x="3" y="13" width="8" height="8" rx="2.5"/><rect x="13" y="13" width="8" height="8" rx="2.5"/></symbol>
+  <symbol id="f-gap" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5M11 8v3.5M11 14h.01"/></symbol>
+  <symbol id="f-eye" viewBox="0 0 24 24"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="f-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6"/><path d="m15 15 5.5 5.5M8 10.5h5"/></symbol>
+  <symbol id="f-edit" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8zM14 3v5h5"/><path d="m9.5 16.5.5-2 4-4 1.5 1.5-4 4z"/></symbol>
+  <symbol id="f-flag" viewBox="0 0 24 24"><path d="M5 21V4M5 4h11l-2 4 2 4H5"/></symbol>
+  <symbol id="f-moon" viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 9 9A7 7 0 0 1 12 3z"/></symbol>
+  <symbol id="f-fold" viewBox="0 0 24 24"><rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M12 5v14"/></symbol>
+</svg>
+
+<a class="skip-link" href="#main">Skip to content</a>
+
+<div class="sky" aria-hidden="true">
+  <span class="blob b1"></span><span class="blob b2"></span><span class="blob b3"></span>
+</div>
+
+<header class="site-header">
+  <nav class="nav wrap" aria-label="Main navigation">
+    <a class="brand" href="#top" aria-label="Magic Themer, home">
+      <img src="./images/icon-256.png" width="36" height="36" alt="">
+      <span>Magic Themer</span>
+    </a>
+    <div class="nav-links">
+      <a href="#result">Before &amp; after</a>
+      <a href="#demo">Try it</a>
+      <a href="#how">How it works</a>
+      <a href="#features">Features</a>
+      <a href="#screens">Screens</a>
+      <a href="#faq">Good to know</a>
+    </div>
+    <div class="nav-tools">
+      <button type="button" class="icon-btn" id="theme-toggle" hidden aria-label="Switch to dark theme"><svg class="i moon"><use href="#i-moon"/></svg><svg class="i sun"><use href="#i-sun"/></svg></button>
+      <a class="btn btn-sm" href="#download">Download</a>
+    </div>
+  </nav>
+</header>
+
+<main id="main">
+
+<!-- HERO -->
+<section class="hero wrap" aria-labelledby="hero-title">
+  <div class="hero-copy">
+    <p class="kicker pop" style="--d:0"><svg class="i"><use href="#i-spark"/></svg>For HONOR &amp; MagicOS phones</p>
+    <h1 id="hero-title">Your icon packs,<br>now on <span class="magic">HONOR<svg class="squiggle" viewBox="0 0 300 24" preserveAspectRatio="none" aria-hidden="true"><path d="M4 16C40 4 70 22 104 12s66-10 98 2 64 6 94-4"/></svg></span>.</h1>
+    <p class="lead">HONOR Themes doesn't support third-party icon packs. <strong>Magic Themer</strong> reads the packs you already have, helps you fill the gaps app by app, and saves a real <code>.hnt</code> theme you apply in HONOR Themes.</p>
+    <div class="actions">
+      <a class="btn btn-big confetti" href="https://github.com/tzii/magic-themer/releases/download/v0.7.1/Magic-Themer-0.7.1.apk"><svg class="i"><use href="#i-down"/></svg>Download APK</a>
+      <a class="btn btn-ghost btn-big" href="https://github.com/tzii/magic-themer" rel="noreferrer"><svg class="i"><use href="#i-git"/></svg>Source code</a>
+    </div>
+    <p class="release">v0.7.1 · 1.6&nbsp;MB · Android 8.0+ · <a href="https://github.com/tzii/magic-themer/releases/tag/v0.7.1" rel="noreferrer">SHA-256 checksum</a></p>
+    <ul class="chips" aria-label="At a glance">
+      <li class="pop" style="--d:1">Free</li>
+      <li class="pop" style="--d:2">Works offline</li>
+      <li class="pop" style="--d:3">No ads</li>
+      <li class="pop" style="--d:4">No accounts</li>
+      <li class="pop" style="--d:5">Open source · GPL-3.0</li>
+    </ul>
+  </div>
+
+  <div class="hero-art" id="hero-art">
+    <div class="halo" aria-hidden="true"></div>
+    <span class="orbit o1" aria-hidden="true"></span>
+    <span class="orbit o2" aria-hidden="true"></span>
+    <span class="orbit o3" aria-hidden="true"></span>
+    <span class="orbit o4" aria-hidden="true"></span>
+    <svg class="twinkle t1" aria-hidden="true"><use href="#i-spark"/></svg>
+    <svg class="twinkle t2" aria-hidden="true"><use href="#i-spark"/></svg>
+    <svg class="twinkle t3" aria-hidden="true"><use href="#i-spark"/></svg>
+    <svg class="twinkle t4" aria-hidden="true"><use href="#i-spark"/></svg>
+    <button type="button" class="mascot" id="mascot" aria-label="Say hi to the Magic Themer mascot">
+      <img src="./images/mascot.svg" width="680" height="680" alt="The Magic Themer mascot, a little mint ghost holding a four-colour app tile" fetchpriority="high">
+    </button>
+    <p class="bubble" id="bubble" role="status" aria-live="polite">Psst… tap me!</p>
+    <div class="shadow" aria-hidden="true"></div>
+  </div>
+</section>
+
+<div class="marquee-wrap" aria-hidden="true"><div class="marquee">
+  <div class="marquee-track">
+    <span>Nova</span><svg class="i"><use href="#i-spark"/></svg><span>ADW</span><svg class="i"><use href="#i-spark"/></svg><span>Lawnchair</span><svg class="i"><use href="#i-spark"/></svg><span>Smart Launcher</span><svg class="i"><use href="#i-spark"/></svg><span>and other common pack formats</span><svg class="i"><use href="#i-spark"/></svg>
+    <span>Nova</span><svg class="i"><use href="#i-spark"/></svg><span>ADW</span><svg class="i"><use href="#i-spark"/></svg><span>Lawnchair</span><svg class="i"><use href="#i-spark"/></svg><span>Smart Launcher</span><svg class="i"><use href="#i-spark"/></svg><span>and other common pack formats</span><svg class="i"><use href="#i-spark"/></svg>
+  </div>
+</div></div>
+
+<!-- REAL RESULT: BEFORE & AFTER -->
+<section class="section wrap compare-sec" id="result" aria-labelledby="result-title">
+  <div class="section-head reveal">
+    <p class="eyebrow">Real phone · real theme</p>
+    <h2 id="result-title">Before &amp; after on an HONOR Magic&nbsp;V5</h2>
+    <p class="section-note">Drag the handle across the real MagicOS home screen to see stock icons turn into the open-source <strong>Arcticons</strong> pack, applied straight through HONOR Themes.</p>
+  </div>
+
+  <div class="compare-grid reveal">
+    <div class="compare-phone">
+      <div class="device compare-device">
+        <div class="compare" id="compare" style="--pos: 50%">
+          <img class="cmp-img cmp-before" data-zoom src="./images/honor-before.webp" width="540" height="1210" alt="HONOR Magic V5 home screen before theming, with stock MagicOS icons" loading="lazy" decoding="async">
+          <img class="cmp-img cmp-after" data-zoom src="./images/honor-after.webp" width="540" height="1210" alt="The exact same HONOR Magic V5 home screen after applying an Arcticons theme created with Magic Themer" loading="lazy" decoding="async">
+          <span class="cmp-tag cmp-tag-l" aria-hidden="true">Arcticons</span>
+          <span class="cmp-tag cmp-tag-r" aria-hidden="true">Stock</span>
+          <div class="cmp-line" aria-hidden="true">
+            <span class="cmp-knob"><svg class="i"><use href="#i-prev"/></svg><svg class="i"><use href="#i-next"/></svg></span>
+          </div>
+          <input type="range" class="cmp-range" id="cmp-range" min="0" max="100" value="50" aria-label="Slide to compare stock HONOR icons and themed Arcticons icons">
+        </div>
+      </div>
+    </div>
+
+    <div class="compare-copy">
+      <p class="panel-label" id="cmp-label">Slide or tap to compare</p>
+      <div class="cmp-btns" role="group" aria-labelledby="cmp-label">
+        <button type="button" class="pack" data-cmp="0" aria-pressed="false"><span class="sw sw-stock"></span>Stock MagicOS</button>
+        <button type="button" class="pack" data-cmp="50" aria-pressed="true"><span class="sw sw-split"></span>50 / 50 split</button>
+        <button type="button" class="pack" data-cmp="100" aria-pressed="false"><span class="sw sw-arc"></span>Arcticons</button>
+      </div>
+      <ul class="cmp-facts">
+        <li><b>Real MagicOS 10 home screen</b> — same wallpaper, same clock widget, no third-party launcher needed.</li>
+        <li><b>15,476 icons ready to browse</b> — matched 104 of 125 installed apps automatically and filled gaps in seconds.</li>
+        <li><b>Open-source artwork</b> — captured with the free GPL-3.0 Arcticons icon pack.</li>
+      </ul>
+      <p class="demo-note">Want to play with different pack styles? <a href="#demo">Try the interactive toy phone ↓</a></p>
+    </div>
+  </div>
+</section>
+
+<!-- DEMO -->
+<section class="section wrap demo" id="demo" aria-labelledby="demo-title">
+  <div class="section-head reveal">
+    <p class="eyebrow">Try it here</p>
+    <h2 id="demo-title">Pick a pack. Watch the magic.</h2>
+    <p class="section-note">A toy version of what the app does. Tap a pack and every icon swaps over. When a pack doesn't cover an app, it gets a wiggly <b>!</b>, just like <b>Needs icon</b> in the app. Tap it to pick something that fits.</p>
+  </div>
+
+  <div class="demo-grid reveal">
+    <div class="phone" id="phone">
+      <div class="phone-screen" id="screen" data-pack="stock">
+        <div class="status" aria-hidden="true"><span>9:41</span><span class="dots"><i></i><i></i><i></i></span></div>
+        <ul class="apps" id="apps" aria-label="Home screen preview">
+          <li class="app" data-style="stock" data-app="camera"><span class="ico"><svg><use href="#g-camera"/></svg></span><span class="lbl">Camera</span></li>
+          <li class="app" data-style="stock" data-app="clock"><span class="ico"><svg><use href="#g-clock"/></svg></span><span class="lbl">Clock</span></li>
+          <li class="app" data-style="stock" data-app="music"><span class="ico"><svg><use href="#g-music"/></svg></span><span class="lbl">Music</span></li>
+          <li class="app" data-style="stock" data-app="map"><span class="ico"><svg><use href="#g-map"/></svg></span><span class="lbl">Maps</span></li>
+          <li class="app" data-style="stock" data-app="mail"><span class="ico"><svg><use href="#g-mail"/></svg></span><span class="lbl">Mail</span></li>
+          <li class="app" data-style="stock" data-app="chat"><span class="ico"><svg><use href="#g-chat"/></svg></span><span class="lbl">Chat</span></li>
+          <li class="app" data-style="stock" data-app="calendar"><span class="ico"><svg><use href="#g-calendar"/></svg></span><span class="lbl">Calendar</span></li>
+          <li class="app" data-style="stock" data-app="gear"><span class="ico"><svg><use href="#g-gear"/></svg></span><span class="lbl">Settings</span></li>
+          <li class="app" data-style="stock" data-app="photo"><span class="ico"><svg><use href="#g-photo"/></svg></span><span class="lbl">Gallery</span></li>
+          <li class="app" data-style="stock" data-app="weather"><span class="ico"><svg><use href="#g-weather"/></svg></span><span class="lbl">Weather</span></li>
+          <li class="app" data-style="stock" data-app="notes"><span class="ico"><svg><use href="#g-notes"/></svg></span><span class="lbl">Notes</span></li>
+          <li class="app" data-style="stock" data-app="video"><span class="ico"><svg><use href="#g-video"/></svg></span><span class="lbl">Videos</span></li>
+        </ul>
+        <div class="dock" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+      </div>
+    </div>
+
+    <div class="demo-panel">
+      <p class="panel-label" id="pack-label">Choose a pack</p>
+      <div class="packs" role="group" aria-labelledby="pack-label">
+        <button type="button" class="pack" data-pack="stock" aria-pressed="true"><span class="sw sw-stock"></span>No theme</button>
+        <button type="button" class="pack" data-pack="mint" aria-pressed="false"><span class="sw sw-mint"></span>Mint</button>
+        <button type="button" class="pack" data-pack="candy" aria-pressed="false"><span class="sw sw-candy"></span>Candy</button>
+        <button type="button" class="pack" data-pack="night" aria-pressed="false"><span class="sw sw-night"></span>Midnight</button>
+      </div>
+      <div class="meter" id="meter" aria-hidden="true"><span id="meter-fill"></span></div>
+      <p class="demo-status" id="demo-status" role="status" aria-live="off">Stock icons. A bit of a mess, right?</p>
+      <button type="button" class="btn btn-fill" id="fill-gap" hidden><svg class="i"><use href="#i-wand"/></svg>Pick a suggested icon</button>
+      <p class="demo-note">The real app reads icon packs installed on your phone and handles hundreds of apps, including ones you haven't installed yet. <a href="#how">See the real screens ↓</a></p>
+    </div>
+  </div>
+</section>
+
+<!-- HOW -->
+<section class="section how" id="how" aria-labelledby="how-title">
+  <svg class="wave wave-top" viewBox="0 0 1440 60" preserveAspectRatio="none" aria-hidden="true"><path d="M0 60V30C120 5 240 5 360 25s240 30 360 10 240-35 360-20 240 30 360 15V60z"/></svg>
+  <div class="wrap">
+    <div class="section-head reveal">
+      <p class="eyebrow">How it works</p>
+      <h2 id="how-title">Four steps to a brand-new look</h2>
+      <p class="section-note">Install any icon pack from Google Play as usual, then open Magic Themer.</p>
+      <p class="test-note"><svg class="i"><use href="#i-spark"/></svg>Real screenshots from an HONOR Magic V5 (with Arcticons) and the Android emulator's built-in test pack. Tap any screen to zoom.</p>
+    </div>
+
+    <div class="steps-wrap">
+      <div class="rope" aria-hidden="true"><span class="rider"><svg><use href="#i-spark"/></svg></span></div>
+      <ol class="steps" id="steps">
+        <li class="step reveal">
+          <div class="step-copy">
+            <span class="num" aria-hidden="true">1</span>
+            <h3>Choose a pack</h3>
+            <p>Tap <b>Choose pack</b> and pick any installed icon pack. Got a theme already? <b>Open .hnt</b> lets you edit its icons, name, designer and description, keeping its wallpapers, fonts and other modules.</p>
+          </div>
+          <figure class="shots">
+            <div class="device tilt-l"><img data-zoom src="./images/start.webp" width="540" height="1200" alt="Magic Themer's start screen with Choose pack and Open .hnt buttons" loading="lazy" decoding="async"></div>
+          </figure>
+        </li>
+
+        <li class="step reveal">
+          <div class="step-copy">
+            <span class="num" aria-hidden="true">2</span>
+            <h3>Fill the gaps</h3>
+            <p><b>Needs icon</b> lists apps the pack doesn't cover. Tap one to get suggestions based on its name, its category and whether it plays music or video, or search the whole pack, alternatives included.</p>
+            <p class="try-it">Follow the glowing ring and tap through it yourself →</p>
+          </div>
+          <figure class="shots stepper" id="stepper">
+            <div class="device tilt-r">
+              <div class="frames">
+                <img class="frame" data-zoom data-frame="0" src="./images/gap-list.webp" width="540" height="1210" alt="Apps list on an HONOR Magic V5 with Arcticons where Geekbench 7 is marked Needs icon" loading="lazy" decoding="async">
+                <img class="frame" data-zoom data-frame="1" src="./images/suggestions.webp" width="540" height="1210" alt="Icon for Geekbench 7: 12 suggested icons, led by Geekbench which matches the launcher activity" loading="lazy" decoding="async">
+                <img class="frame" data-zoom data-frame="2" src="./images/customized.webp" width="540" height="1210" alt="Geekbench 7 now marked Customized with the chosen Arcticons icon, updating to 105 of 125 apps themed" loading="lazy" decoding="async">
+                <button type="button" class="hotspot" data-on="0" style="--x:4%;--y:41.2%;--w:92%;--h:8.2%" aria-label="Tap Geekbench 7, which needs an icon"><span>Tap!</span></button>
+                <button type="button" class="hotspot" data-on="1" style="--x:4.5%;--y:26.8%;--w:30.2%;--h:23.4%" aria-label="Pick the suggested Geekbench icon"><span>Pick me!</span></button>
+                <span class="hotspot done" data-on="2" style="--x:4%;--y:41.2%;--w:92%;--h:8.2%" aria-hidden="true"><span>Customized!</span></span>
+              </div>
+            </div>
+            <figcaption class="step-pills" role="group" aria-label="Fill the gaps, step by step">
+              <button type="button" data-go="0" aria-pressed="true">1 · Spot the gap</button>
+              <button type="button" data-go="1" aria-pressed="false">2 · Pick a match</button>
+              <button type="button" data-go="2" aria-pressed="false">3 · Done!</button>
+            </figcaption>
+          </figure>
+        </li>
+
+        <li class="step reveal">
+          <div class="step-copy">
+            <span class="num" aria-hidden="true">3</span>
+            <h3>Name your theme</h3>
+            <p>In <b>Theme</b>, check the name and designer. New themes are named after the pack until you type your own. Keep <b>Whole icon pack</b> on to include apps you haven't installed yet, or turn it off to export only what's on your phone.</p>
+          </div>
+          <figure class="shots">
+            <div class="device tilt-l"><img data-zoom src="./images/theme.webp" width="540" height="1200" alt="Theme tab with theme name, designer, description, the Whole icon pack switch and the HONOR .hnt file format" loading="lazy" decoding="async"></div>
+          </figure>
+        </li>
+
+        <li class="step reveal">
+          <div class="step-copy">
+            <span class="num" aria-hidden="true">4</span>
+            <h3>Save &amp; apply</h3>
+            <p>Tap <b>Save theme</b> and save into internal storage → <code>HONOR/Themes</code> (or Downloads, then move it there with Files). Magic Themer reads the file back and checks its size and SHA-256 before it says it's saved.</p>
+            <p>Then open HONOR Themes → <b>Me → My downloads</b>, go to <b>Customize → Icons</b> and pick your theme. Done!</p>
+            <aside class="sticky-note">
+              <b>Theme not showing up?</b> Tap <b>App info</b> in the save dialog, choose <b>Force stop</b>, then reopen Themes.
+            </aside>
+          </div>
+          <figure class="shots">
+            <div class="device tilt-r"><img data-zoom src="./images/saved.webp" width="540" height="1200" alt="Theme saved dialog: file name, bytes verified, SHA-256, where to save it, and App info, Done and Open Themes buttons" loading="lazy" decoding="async"></div>
+          </figure>
+        </li>
+      </ol>
+    </div>
+  </div>
+  <svg class="wave wave-bottom" viewBox="0 0 1440 60" preserveAspectRatio="none" aria-hidden="true"><path d="M0 0v30c120 25 240 25 360 5S600-25 720-5s240 35 360 20 240-30 360-15V0z"/></svg>
+</section>
+
+<!-- FEATURES -->
+<section class="section wrap" id="features" aria-labelledby="features-title">
+  <div class="section-head reveal">
+    <p class="eyebrow">Features</p>
+    <h2 id="features-title">Small app, lots of tricks</h2>
+  </div>
+  <ul class="stickers">
+    <li class="sticker reveal c1"><span class="doodle"><svg><use href="#f-pack"/></svg></span><h3>Finds your packs</h3><p>Reads installed packs in the common launcher formats: Nova, ADW, Lawnchair, Smart Launcher and others.</p></li>
+    <li class="sticker reveal c2"><span class="doodle"><svg><use href="#f-gap"/></svg></span><h3>Spots the gaps</h3><p><b>Needs icon</b> shows uncovered apps with suggestions that make sense for each one.</p><img class="loupe" src="./images/loupe-gap.webp" width="540" height="109" alt="Real app row on HONOR Magic V5: Geekbench 7 marked Needs icon" loading="lazy" decoding="async"></li>
+    <li class="sticker reveal c3"><span class="doodle"><svg><use href="#f-eye"/></svg></span><h3>Original icons</h3><p>See each app's own icon instead of your current theme's, so you know what a theme really covers.</p><img class="loupe" src="./images/loupe-original.webp" width="540" height="192" alt="Real app row on HONOR Magic V5: 104 of 125 apps themed, Original icons switch on, and Camera paired with its Arcticons icon" loading="lazy" decoding="async"></li>
+    <li class="sticker reveal c4"><span class="doodle"><svg><use href="#f-search"/></svg></span><h3>Forgiving search</h3><p>Finds apps and artwork even with typos, split words or initials.</p></li>
+    <li class="sticker reveal c2"><span class="doodle"><svg><use href="#f-edit"/></svg></span><h3>Edits existing themes</h3><p>Opens ordinary <code>.hnt</code> files and always saves a new copy. The original is never overwritten.</p><img class="loupe" src="./images/loupe-copy.webp" width="540" height="180" alt="Real app message: Theme opened. Original file preserved; saving creates a new copy. Save theme copy button" loading="lazy" decoding="async"></li>
+    <li class="sticker reveal c1"><span class="doodle"><svg><use href="#f-flag"/></svg></span><h3>Honest about limits</h3><p>Flags apps HONOR can't theme, like builds renamed after compilation.</p></li>
+    <li class="sticker reveal c4"><span class="doodle"><svg><use href="#f-moon"/></svg></span><h3>Light &amp; dark</h3><p>Follows your phone's theme, day or night.</p></li>
+    <li class="sticker reveal c3"><span class="doodle"><svg><use href="#f-fold"/></svg></span><h3>Foldable friendly</h3><p>Adapts to foldables, tablets and landscape, with more columns when there's room.</p><img class="loupe" src="./images/loupe-fold.webp" width="640" height="135" alt="Real app row on an unfolded screen: six pack icons side by side in dark mode" loading="lazy" decoding="async"></li>
+  </ul>
+</section>
+
+<!-- SCREENS -->
+<section class="section screens" id="screens" aria-labelledby="gallery-title">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <p class="eyebrow">Screenshots</p>
+      <h2 id="gallery-title">Have a peek inside</h2>
+      <p class="section-note">Real screens from an HONOR Magic V5 and the Android emulator.</p>
+    </div>
+
+    <div class="fold-stage reveal">
+      <div class="fold-wrap">
+        <div class="fold" id="fold" data-open="false">
+          <img class="fold-img fold-closed" data-zoom src="./images/pack-icons.webp" width="540" height="1200" alt="Pack icons tab on a phone in light mode, three icons per row" loading="lazy" decoding="async">
+          <img class="fold-img fold-open" data-zoom src="./images/foldable-dark.webp" width="1080" height="960" alt="Pack icons tab on an unfolded foldable in dark mode, six icons per row" loading="lazy" decoding="async">
+        </div>
+      </div>
+      <div class="fold-copy">
+        <h3>Unfold it. Dim the lights.</h3>
+        <p>The same <b>Pack icons</b> tab on a phone in light mode and on an unfolded foldable in dark mode. Wider screens get more columns.</p>
+        <button type="button" class="btn" id="fold-toggle" aria-pressed="false"><svg class="i"><use href="#f-fold"/></svg><span>Unfold &amp; go dark</span></button>
+      </div>
+    </div>
+  </div>
+
+  <div class="gallery" id="gallery" role="region" tabindex="0" aria-label="More screenshots, scroll sideways">
+    <figure class="g-item reveal"><div class="device"><img data-zoom src="./images/original-on.webp" width="540" height="1210" alt="Apps tab on an HONOR Magic V5 using Arcticons (15,476 icons), with Original icons switched on" loading="lazy" decoding="async"></div><figcaption>Original icons &amp; 15,000+ icons</figcaption></figure>
+    <figure class="g-item reveal"><div class="device"><img data-zoom src="./images/pack-picker.webp" width="540" height="1210" alt="Choose icon pack sheet listing five icon packs installed on the phone" loading="lazy" decoding="async"></div><figcaption>Pick any installed pack</figcaption></figure>
+    <figure class="g-item reveal"><div class="device"><img data-zoom src="./images/import.webp" width="540" height="1200" alt="An imported theme open for editing, with theme name, designer and description fields and Apply whole pack to theme" loading="lazy" decoding="async"></div><figcaption>Edit an existing theme</figcaption></figure>
+    <figure class="g-item reveal"><div class="device"><img data-zoom src="./images/suggestions.webp" width="540" height="1210" alt="Icon picker for Geekbench 7 with 12 suggested Arcticons icons at the top" loading="lazy" decoding="async"></div><figcaption>Suggestions first</figcaption></figure>
+  </div>
+</section>
+
+<!-- PRIVACY -->
+<section class="section wrap" aria-labelledby="privacy-title">
+  <div class="promise reveal">
+    <div class="promise-copy">
+      <p class="eyebrow">Pinky promise</p>
+      <h2 id="privacy-title">Nothing leaves your phone.</h2>
+      <p>Magic Themer has no network access at all. Your packs, apps and themes stay on the device, and the whole app is about 1.6&nbsp;MB.</p>
+    </div>
+    <ul class="nopes">
+      <li style="--n:0"><span class="x" aria-hidden="true">×</span><s>Ads</s></li>
+      <li style="--n:1"><span class="x" aria-hidden="true">×</span><s>Accounts</s></li>
+      <li style="--n:2"><span class="x" aria-hidden="true">×</span><s>Analytics</s></li>
+      <li style="--n:3"><span class="x" aria-hidden="true">×</span><s>Internet</s></li>
+    </ul>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="section wrap" id="faq" aria-labelledby="faq-title">
+  <div class="section-head reveal">
+    <p class="eyebrow">Good to know</p>
+    <h2 id="faq-title">The honest bits</h2>
+  </div>
+  <div class="faq">
+    <details class="reveal" open>
+      <summary>Which phones does it work on?</summary>
+      <p>It's tested on an <b>HONOR Magic V5 with MagicOS 10</b> (EU). Other HONOR and Huawei devices may work but haven't been tested. It needs Android 8.0 or newer.</p>
+    </details>
+    <details class="reveal">
+      <summary>Does it unlock paid icon packs?</summary>
+      <p>No. Install packs from Google Play as usual; Magic Themer only reads what's already on your phone. Icon artwork belongs to its creators, so keep themes made from packs for personal use unless the pack's author allows sharing.</p>
+    </details>
+    <details class="reveal">
+      <summary>What doesn't carry over from a pack?</summary>
+      <p>Icons are static 192&nbsp;px PNGs. Dynamic calendars and clocks, pack masks, backgrounds and scaling for unmapped apps aren't reproduced. HONOR themes one icon per app package, so apps with several launcher activities share one icon.</p>
+    </details>
+    <details class="reveal">
+      <summary>Can it make wallpapers, fonts or lock screens?</summary>
+      <p>No. New wallpapers, fonts, lock screens and system UI can't be created. When you edit an existing theme, its wallpapers, fonts and other modules are kept as they are. Encrypted, signed or otherwise unusual theme formats aren't supported.</p>
+    </details>
+    <details class="reveal">
+      <summary>I used v0.7.0 or earlier. What changes?</summary>
+      <p>From v0.7.1 the app ID is <code>com.tzii.magicthemer</code>, so Android installs it next to the old <code>dev.magicthemer</code> app. Export any themes you want to keep from the old app and open them in the new one. Settings and assignments don't transfer automatically.</p>
+    </details>
+  </div>
+</section>
+
+<!-- DOWNLOAD -->
+<section class="section wrap" id="download" aria-labelledby="dl-title">
+  <div class="cta reveal">
+    <svg class="twinkle c-t1" aria-hidden="true"><use href="#i-spark"/></svg>
+    <svg class="twinkle c-t2" aria-hidden="true"><use href="#i-spark"/></svg>
+    <svg class="twinkle c-t3" aria-hidden="true"><use href="#i-spark"/></svg>
+    <h2 id="dl-title">Ready to theme?</h2>
+    <p>Download the APK from GitHub and install it. Version 0.7.1 · 1.6&nbsp;MB · Android 8.0+</p>
+    <div class="actions">
+      <a class="btn btn-big btn-light confetti" href="https://github.com/tzii/magic-themer/releases/download/v0.7.1/Magic-Themer-0.7.1.apk"><svg class="i"><use href="#i-down"/></svg>Download v0.7.1</a>
+      <a class="btn btn-big btn-outline-light" href="https://github.com/tzii/magic-themer/releases" rel="noreferrer">All releases &amp; checksums<svg class="i"><use href="#i-out"/></svg></a>
+    </div>
+    <button type="button" class="peek" id="peek" aria-label="Wave at the mascot"><img src="./images/mascot.svg" width="680" height="680" alt="" loading="lazy"></button>
+  </div>
+</section>
+
+</main>
+
+<footer class="site-footer wrap">
+  <p>Made with care by <a href="https://tzii.github.io/">Simone Perini</a>. Free software under the <a href="https://github.com/tzii/magic-themer/blob/main/LICENSE" rel="noreferrer">GNU GPL v3</a>. Not affiliated with HONOR. No trackers, no cookies.</p>
+  <nav aria-label="Footer">
+    <a href="https://github.com/tzii/magic-themer" rel="noreferrer">GitHub</a>
+    <a href="https://github.com/tzii/magic-themer/blob/main/CHANGELOG.md" rel="noreferrer">Changelog</a>
+    <a href="https://github.com/tzii/magic-themer/issues" rel="noreferrer">Report a problem</a>
+  </nav>
+</footer>
+
+<dialog class="lightbox" id="lightbox" aria-label="Screenshot viewer">
+  <figure>
+    <img id="lb-img" src="data:," alt="">
+    <figcaption id="lb-cap"></figcaption>
+  </figure>
+  <button type="button" class="lb-btn lb-prev" id="lb-prev" aria-label="Previous screenshot"><svg class="i"><use href="#i-prev"/></svg></button>
+  <button type="button" class="lb-btn lb-next" id="lb-next" aria-label="Next screenshot"><svg class="i"><use href="#i-next"/></svg></button>
+  <button type="button" class="lb-btn lb-close" id="lb-close" aria-label="Close"><svg class="i"><use href="#i-x"/></svg></button>
+</dialog>
+</body>
+</html>
