@@ -9,6 +9,8 @@ Free, offline, and open source — no ads, accounts, analytics, or network acces
 
 [**Project Website**](https://tzii.github.io/magic-themer/) · [**Download APK (v0.7.1)**](https://github.com/tzii/magic-themer/releases/latest) · [**Changelog**](CHANGELOG.md) · [**GNU GPL v3.0**](LICENSE)
 
+[![CI](https://github.com/tzii/magic-themer/actions/workflows/ci.yml/badge.svg)](https://github.com/tzii/magic-themer/actions/workflows/ci.yml)
+
 </div>
 
 ---
@@ -86,6 +88,8 @@ $env:ANDROID_HOME = "$env:LOCALAPPDATA\Android\Sdk"
 ```
 
 On macOS or Linux, run `./gradlew` with the same tasks. The debug APK is written to `app/build/outputs/apk/debug/app-debug.apk`.
+
+[GitHub Actions](https://github.com/tzii/magic-themer/actions/workflows/ci.yml) runs these tasks, an unsigned R8 release build and the `:qa:iconpack` fixture build on every pull request and every push to `main`. Each run keeps its debug APK and test and lint reports as artifacts for 14 days. That APK is signed with the runner's throwaway debug key, so it can't update a debug build installed from your own machine; uninstall that one first.
 
 For a signed release build, copy `keystore.properties.example` to `keystore.properties`, fill it in, and run `:app:assembleRelease`. Without that file the release APK is left unsigned. Keystores and `keystore.properties` are ignored by Git.
 
