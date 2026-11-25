@@ -28,9 +28,21 @@ Install the signed APK on the target phone and check pack selection, original ic
 
 Review `git diff` and the files being committed. Local themes, test output, APKs, signing keys and signing properties are ignored and should stay out of Git. The privacy statement is in the README and Settings: the app works offline, has no network permission, and has no accounts or analytics.
 
-Commit the release source and push it. Create the version's tag on that commit and a GitHub release using its entry in `CHANGELOG.md`. Attach the verified signed APK under a clear name such as `Magic-Themer-0.7.1.apk`, along with its SHA-256 from `Get-FileHash -Algorithm SHA256`. Keep the corresponding source available under GPL-3.0.
+Commit the release source and push it. Wait for the [CI workflow](https://github.com/tzii/magic-themer/actions/workflows/ci.yml) to pass on that commit, then create the version's tag on it and a GitHub release using its entry in `CHANGELOG.md`. Attach the verified signed APK under a clear name such as `Magic-Themer-0.7.1.apk`, along with its SHA-256 from `Get-FileHash -Algorithm SHA256`. Keep the corresponding source available under GPL-3.0.
 
-The unsigned release APK cannot be installed. Do not attach it as the public installation download. See [validation](VALIDATION.md) for the checks completed locally and their limits.
+The unsigned release APK cannot be installed. Do not attach it as the public installation download. CI builds the release variant unsigned only to check that it compiles, and keeps just the debug APK. See [validation](VALIDATION.md) for the checks completed locally and their limits.
+
+## Update the website and README
+
+The project website (`docs/index.html`, served by GitHub Pages from `main`) links straight to the APK file, so update it once the release and its APK exist:
+
+- both **Download** buttons: `releases/download/vX.Y.Z/Magic-Themer-X.Y.Z.apk`
+- the release line under the hero buttons: version, APK size and the `releases/tag/vX.Y.Z` checksum link
+- the **Ready to theme?** section: its text and the button label
+- `softwareVersion` in the JSON-LD block in `<head>`
+- the **Download APK (vX.Y.Z)** label at the top of `README.md`
+
+Search both files for the previous version number to find every reference, but leave the application ID notes ("From v0.7.1 …") as they are. If the APK size changed noticeably, also update `1.6 MB` in the website's privacy section and the README's feature list.
 
 ## Existing release key
 
