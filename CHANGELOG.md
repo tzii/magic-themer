@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Redrawn, cuter launcher icon: a bigger round head with glossy eyes, blush and a happy smile, and tiny paws hugging the palette card. The tall ribbon on the right is gone. The themed (monochrome) icon, the README icon and the website mascot match.
+
 ## 0.7.1
 
 - Android application ID is now `com.tzii.magicthemer`, matching the developer naming used by ThystTV. The visible name remains Magic Themer, and the permanent release signing key is unchanged.
