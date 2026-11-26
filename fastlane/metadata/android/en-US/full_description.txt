@@ -1,0 +1,17 @@
+Turn the Android icon packs you already have on your phone into HONOR / MagicOS icon themes (.hnt / .hwt) — completely offline, with no ads, accounts, analytics, or network access.
+
+HONOR Themes doesn't support third-party icon packs directly. Magic Themer reads an installed icon pack, helps you fill missing apps and pick alternatives app by app, and saves a theme you apply straight through HONOR Themes → Customize → Icons.
+
+Features:
+• Reads installed icon packs (Nova, ADW, Lawnchair, Smart Launcher, and others) without downloading or unlocking paid packs.
+• Export the whole icon pack or only installed apps.
+• Style unmatched apps (experimental, opt-in): optionally export the pack's own icon mask, backgrounds, and overlay when provided.
+• Live calendar icon (experimental, opt-in): optionally export HONOR's dynamic calendar background and date color.
+• Smart gap filling: filter by "Needs icon", browse ranked offline suggestions by app name or category, or share the uncovered apps list as an icon request for pack authors.
+• Original icons toggle: see each app's real icon instead of your currently active theme's icon.
+• Non-destructive .hnt editing: open an existing ordinary local theme to edit icons, name, designer, and description while keeping wallpapers, fonts, and other modules intact. Always saves a new copy.
+• SHA-256 verified saves so incomplete files never land in HONOR/Themes.
+• Adaptive Material 3 light/dark UI built for phones, foldables, and tablets.
+
+Compatibility:
+Tested on an HONOR Magic V5 (MagicOS 10 EU). Other HONOR and Huawei devices may work; device reports are welcome on GitHub. Free software under the GNU GPL v3.0, not affiliated with HONOR.

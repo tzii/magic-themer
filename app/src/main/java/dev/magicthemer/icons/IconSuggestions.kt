@@ -4,12 +4,25 @@ import dev.magicthemer.ApplicationTarget
 import java.text.Normalizer
 import java.util.Locale
 
+enum class SuggestionReason {
+    LAUNCHER_ACTIVITY,
+    MAPPED_TO_APP,
+    APP_NAME,
+    APP_NAME_WORDS,
+    KNOWN_APP_NAME,
+    PACKAGE_NAME,
+    CATEGORY_ICON,
+    SIMILAR_CATEGORY_APP,
+}
+
 /** A choice to review, never an automatic assignment. */
 data class IconSuggestion(
     val drawableName: String,
     val label: String,
     val reason: String,
     val score: Int,
+    val reasonKind: SuggestionReason = SuggestionReason.APP_NAME,
+    val category: AppCategory? = null,
 )
 
 /**
@@ -120,11 +133,11 @@ class IconSuggestions(data: PackData) {
         val aliasTokens = aliases.flatMap(::meaningfulWords).toSet()
         val ranked = HashMap<Int, IconSuggestion>()
 
-        fun offer(index: Int, score: Int, reason: String) {
+        fun offer(index: Int, score: Int, reason: String, kind: SuggestionReason, category: AppCategory? = null) {
             val icon = artwork[index]
             val old = ranked[index]
             if (old == null || score > old.score) {
-                ranked[index] = IconSuggestion(icon.name, icon.label, reason, score)
+                ranked[index] = IconSuggestion(icon.name, icon.label, reason, score, kind, category)
             }
         }
 
@@ -134,19 +147,19 @@ class IconSuggestions(data: PackData) {
         val activities = target.activities.take(MAX_WORDS).toSet()
         for (mapping in byPackage[target.packageName].orEmpty()) {
             val index = byName.getValue(mapping.drawableName)
-            if (mapping.activityName in activities) offer(index, 1_200, "Matches launcher activity")
-            else offer(index, 1_100, "Mapped to this app")
+            if (mapping.activityName in activities) offer(index, 1_200, "Matches launcher activity", SuggestionReason.LAUNCHER_ACTIVITY)
+            else offer(index, 1_100, "Mapped to this app", SuggestionReason.MAPPED_TO_APP)
         }
         for (activity in activities) {
             for (mapping in byActivity[activity].orEmpty()) {
-                offer(byName.getValue(mapping.drawableName), 1_150, "Matches launcher activity")
+                offer(byName.getValue(mapping.drawableName), 1_150, "Matches launcher activity", SuggestionReason.LAUNCHER_ACTIVITY)
             }
         }
         if (labelCompact.isNotEmpty()) {
-            for (index in byCompact[labelCompact].orEmpty()) offer(index, 950, "Matches app name")
+            for (index in byCompact[labelCompact].orEmpty()) offer(index, 950, "Matches app name", SuggestionReason.APP_NAME)
         }
         for (alias in aliasCompacts) {
-            for (index in byCompact[alias].orEmpty()) offer(index, 900, "Known app name")
+            for (index in byCompact[alias].orEmpty()) offer(index, 900, "Known app name", SuggestionReason.KNOWN_APP_NAME)
         }
 
         val candidates = linkedSetOf<Int>()
@@ -173,11 +186,12 @@ class IconSuggestions(data: PackData) {
                 labelMatches > 0 && labelMatches * 2 >= labelTokens.size -> {
                     val complete = labelMatches == labelTokens.size
                     offer(index, (if (complete) 800 else 650) + labelMatches * 20 - minOf(icon.words.size, 20),
-                        if (complete) "Matches app name" else "Shares app name words")
+                        if (complete) "Matches app name" else "Shares app name words",
+                        if (complete) SuggestionReason.APP_NAME else SuggestionReason.APP_NAME_WORDS)
                 }
-                completeSeparatedName -> offer(index, 800 + separatedLabelTokens.size * 20 - minOf(icon.words.size, 20), "Matches app name")
-                aliasMatches > 0 -> offer(index, 600 + aliasMatches * 20 - minOf(icon.words.size, 20), "Known app name")
-                packageMatches > 0 -> offer(index, 500 + packageMatches * 20 - minOf(icon.words.size, 20), "Matches package name")
+                completeSeparatedName -> offer(index, 800 + separatedLabelTokens.size * 20 - minOf(icon.words.size, 20), "Matches app name", SuggestionReason.APP_NAME)
+                aliasMatches > 0 -> offer(index, 600 + aliasMatches * 20 - minOf(icon.words.size, 20), "Known app name", SuggestionReason.KNOWN_APP_NAME)
+                packageMatches > 0 -> offer(index, 500 + packageMatches * 20 - minOf(icon.words.size, 20), "Matches package name", SuggestionReason.PACKAGE_NAME)
             }
         }
         // Look-alikes for the app's kind rank below every name or mapping match.
@@ -186,7 +200,9 @@ class IconSuggestions(data: PackData) {
             val bonus = if (category in declared) 10 else 0
             byCategory[category].orEmpty().forEachIndexed { rank, (index, strength) ->
                 offer(index, 300 + strength * 40 + bonus - minOf(rank, 39),
-                    if (strength >= 3) "${category.label} icon" else "Similar ${category.label.lowercase(Locale.ROOT)} app")
+                    if (strength >= 3) "${category.label} icon" else "Similar ${category.label.lowercase(Locale.ROOT)} app",
+                    if (strength >= 3) SuggestionReason.CATEGORY_ICON else SuggestionReason.SIMILAR_CATEGORY_APP,
+                    category)
             }
         }
         return ranked.values.sortedWith(compareByDescending<IconSuggestion> { it.score }.thenBy { it.drawableName }).take(count)

@@ -17,6 +17,7 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.color.MaterialColors
+import dev.magicthemer.R
 
 data class VisualItem(
     val key: String,
@@ -146,7 +147,7 @@ class VisualAdapter(
             append(item.title)
             if (item.status.isNotBlank()) append(", ").append(item.status)
             if (item.subtitle.isNotBlank()) append(", ").append(item.subtitle)
-            if (item.comparisonKey != null && !grid) append(", original and themed icons")
+            if (item.comparisonKey != null && !grid) append(", ").append(context.getString(R.string.a11y_original_and_themed))
         }
         loader.bind(holder.image, item.imageKey, 128)
         holder.comparison?.let { image ->

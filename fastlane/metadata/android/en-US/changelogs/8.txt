@@ -1,0 +1,2 @@
+- New application ID (com.tzii.magicthemer) with the same permanent release signing key.
+- Original icons toggle, compact scrolling header, Settings dialog, and R8-shrunk APK.

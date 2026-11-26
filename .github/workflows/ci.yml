@@ -33,7 +33,7 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v6
 
-      # The runner image already ships Android SDK Platform 36 and Build Tools 36.0.0.
+      # AGP installs Android SDK Platform 37 automatically if the runner image does not preinstall it.
       # No keystore.properties exists here, so the release APK is built unsigned:
       # this only proves that the R8-shrunk release variant still compiles.
       - name: Build, test and lint

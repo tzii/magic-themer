@@ -1,0 +1,17 @@
+Trasforma i pacchetti di icone Android che hai già sul telefono in temi di icone per HONOR / MagicOS (.hnt / .hwt), completamente offline, senza pubblicità, account, analisi o accesso alla rete.
+
+Temi HONOR non supporta direttamente i pacchetti di icone di terze parti. Magic Themer legge un pacchetto installato, ti aiuta a coprire le app mancanti e a scegliere icone alternative app per app, e salva un tema da applicare tramite Temi HONOR → Personalizza → Icone.
+
+Funzionalità:
+• Legge i pacchetti di icone installati (Nova, ADW, Lawnchair, Smart Launcher e altri) senza scaricare né sbloccare pacchetti a pagamento.
+• Esporta l'intero pacchetto di icone oppure solo le app installate.
+• Stile per app senza icona (sperimentale, opzionale): esporta maschera, sfondi e cornice del pacchetto quando presenti.
+• Icona calendario dinamica (sperimentale, opzionale): esporta sfondo e colore della data per HONOR.
+• Copertura intelligente delle lacune: filtra per "Senza icona", scegli tra suggerimenti offline per nome o categoria, oppure condividi l'elenco come richiesta icone per l'autore del pacchetto.
+• Interruttore Icone originali: mostra l'icona reale di ogni app invece di quella del tema applicato.
+• Modifica non distruttiva di temi .hnt: modifica icone, nome, autore e descrizione di un tema locale preservando sfondi, font e altri moduli. Salva sempre una nuova copia.
+• Salvataggi verificati con SHA-256.
+• Interfaccia Material 3 chiara e scura adattiva per telefoni, pieghevoli e tablet.
+
+Compatibilità:
+Testata su HONOR Magic V5 (MagicOS 10 EU). Software libero con licenza GNU GPL v3.0, non affiliato a HONOR.

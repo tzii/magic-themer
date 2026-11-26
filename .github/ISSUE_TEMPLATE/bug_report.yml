@@ -1,0 +1,62 @@
+name: Bug report
+description: Report a problem with Magic Themer or an exported HONOR theme
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Magic Themer has only been verified on an **HONOR Magic V5 (MagicOS 10 EU)** so far.
+        Sharing your exact device and MagicOS version helps track compatibility across HONOR and Huawei phones.
+
+  - type: input
+    id: device
+    attributes:
+      label: Device model
+      description: Phone or tablet model (e.g. HONOR Magic V5, Magic6 Pro, MagicPad 2)
+      placeholder: "HONOR Magic V5"
+    validations:
+      required: true
+
+  - type: input
+    id: magicos
+    attributes:
+      label: MagicOS / EMUI & Android version
+      description: From Settings → About phone (include region/build number if possible)
+      placeholder: "MagicOS 10.0.0.168 (EU), Android 16"
+    validations:
+      required: true
+
+  - type: input
+    id: app_version
+    attributes:
+      label: Magic Themer version
+      description: Shown in Settings → About inside the app
+      placeholder: "0.8.0"
+    validations:
+      required: true
+
+  - type: input
+    id: icon_pack
+    attributes:
+      label: Icon pack or imported theme (if applicable)
+      placeholder: "Arcticons / Enix / imported .hnt"
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: What happened & steps to reproduce
+      description: Tell us what you did, what happened, and what you expected to happen.
+      placeholder: |
+        1. Selected icon pack...
+        2. Saved theme to HONOR/Themes...
+        3. Opened HONOR Themes → Me → My downloads...
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Quick checks
+      options:
+        - label: If the theme didn't appear in HONOR Themes, I tried App info → Force stop → reopen Themes.
+        - label: I tested with an ordinary local theme (not encrypted or store-signed).

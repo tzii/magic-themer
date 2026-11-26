@@ -1,0 +1,6 @@
+- Stile opzionale per app senza icona con maschera, sfondi e cornice del pacchetto (sperimentale).
+- Supporto opzionale per icona calendario dinamica HONOR con sfondo e colore data (sperimentale).
+- Traduzione italiana dell'interfaccia e risorse stringa pronte per altre lingue.
+- Condivisione dell'elenco "Senza icona" come richiesta icone per gli autori dei pacchetti.
+- Aggiornamento di Gradle, AGP, Kotlin, Material Components e Android 17 (targetSdk 37).
+- Nuova icona mascotte ridisegnata.

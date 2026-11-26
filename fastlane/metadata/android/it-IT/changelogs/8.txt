@@ -1,0 +1,2 @@
+- Nuovo ID applicazione (com.tzii.magicthemer) con la stessa chiave di firma permanente.
+- Interruttore Icone originali, intestazione compatta a scorrimento, schermata Impostazioni e APK ridotto con R8.

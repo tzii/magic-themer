@@ -1,0 +1,1 @@
+Turn installed Android icon packs into HONOR / MagicOS icon themes offline.

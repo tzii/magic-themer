@@ -12,6 +12,7 @@ data class ThemeDocument internal constructor(
     val iconEntries: Map<String, String>,
     val warnings: List<String>,
     val compatibilityRepairAvailable: Boolean,
+    val hasLauncherModule: Boolean = false,
     internal val iconsFile: File,
     internal val packageEntries: Map<String, List<String>>,
     internal val sourceDigest: ByteArray,

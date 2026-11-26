@@ -7,11 +7,14 @@ import java.time.LocalDate
 internal data class ParsedAppFilter(
     val mappings: List<IconMapping>,
     val warnings: List<String>,
+    val fallbackStyle: PackFallbackStyle = PackFallbackStyle(),
+    val calendarMappings: List<CalendarMapping> = emptyList(),
 )
 
 internal object AppFilterParser {
     const val MAX_XML_BYTES = SecureIconXml.MAX_XML_BYTES
     const val MAX_MAPPINGS = 100_000
+    const val MAX_FALLBACK_DRAWABLES = 64
 
     fun parse(stream: InputStream, dayOfMonth: Int = LocalDate.now().dayOfMonth): ParsedAppFilter {
         val builder = Builder(dayOfMonth)
@@ -22,6 +25,11 @@ internal object AppFilterParser {
     internal class Builder(private val dayOfMonth: Int = LocalDate.now().dayOfMonth) {
         private val mappings = ArrayList<IconMapping>()
         private val calendars = ArrayList<IconMapping>()
+        private val calendarEntries = ArrayList<CalendarMapping>()
+        private val backgrounds = linkedSetOf<String>()
+        private val masks = linkedSetOf<String>()
+        private val upons = linkedSetOf<String>()
+        private var scale = 1f
         private val notices = linkedSetOf<String>()
         private var skipped = 0
         private var invalidComponents = 0
@@ -41,21 +49,53 @@ internal object AppFilterParser {
                 "item" -> addMapping(attributes["component"], attributes["drawable"], false)
                 "calendar" -> {
                     val prefix = attributes["prefix"]
+                    val rawComponent = attributes["component"]?.trim()
                     if (prefix == null || !validDrawableName(prefix + dayOfMonth)) {
                         skipped++
                         invalidDrawables++
+                    } else if (rawComponent == ":CALENDAR") {
+                        calendarEntries += CalendarMapping(":CALENDAR", "", "", prefix)
+                        notices += "Calendar icons can export a live HONOR background, plus a static snapshot for day $dayOfMonth."
                     } else {
-                        addMapping(attributes["component"], prefix + dayOfMonth, true)
-                        notices += "Calendar icons are a snapshot for day $dayOfMonth; rebuild the theme after the date changes."
+                        val added = addMapping(rawComponent, prefix + dayOfMonth, true)
+                        if (added != null) {
+                            calendarEntries += CalendarMapping(added.component, added.packageName, added.activityName, prefix)
+                            notices += "Calendar icons can export a live HONOR background, plus a static snapshot for day $dayOfMonth."
+                        }
                     }
                 }
-                "iconback", "iconmask", "iconupon", "scale" ->
-                    notices += "This pack defines fallback backgrounds, masks or scaling. Only explicitly mapped icons are exported; unmapped apps keep their current icons."
+                "iconback" -> {
+                    collectImages(attributes, backgrounds)
+                    notices += "This pack defines fallback backgrounds, masks or scaling for unmapped apps."
+                }
+                "iconmask" -> {
+                    collectImages(attributes, masks)
+                    notices += "This pack defines fallback backgrounds, masks or scaling for unmapped apps."
+                }
+                "iconupon" -> {
+                    collectImages(attributes, upons)
+                    notices += "This pack defines fallback backgrounds, masks or scaling for unmapped apps."
+                }
+                "scale" -> {
+                    attributes["factor"]?.trim()?.toFloatOrNull()?.takeIf { it.isFinite() && it in 0.1f..2.0f }?.let { scale = it }
+                    notices += "This pack defines fallback backgrounds, masks or scaling for unmapped apps."
+                }
                 "dynamic-clock" -> notices += "Dynamic clocks are exported as a static drawable; the hands do not update."
             }
         }
 
-        private fun addMapping(component: String?, drawable: String?, calendar: Boolean) {
+        private fun collectImages(attributes: Map<String, String>, target: MutableSet<String>) {
+            val ordered = attributes.entries
+                .filter { it.key.startsWith("img") }
+                .sortedWith(compareBy<Map.Entry<String, String>> { it.key.removePrefix("img").toIntOrNull() ?: Int.MAX_VALUE }.thenBy { it.key })
+            for ((_, value) in ordered) {
+                if (target.size >= MAX_FALLBACK_DRAWABLES) break
+                val trimmed = value.trim()
+                if (validDrawableName(trimmed)) target += trimmed
+            }
+        }
+
+        private fun addMapping(component: String?, drawable: String?, calendar: Boolean): IconMapping? {
             if (mappings.size + calendars.size >= MAX_MAPPINGS) {
                 throw IllegalArgumentException("appfilter.xml exceeds the 100,000 mapping limit.")
             }
@@ -63,9 +103,10 @@ internal object AppFilterParser {
             if (mapping == null) {
                 skipped++
                 if (drawable == null || !validDrawableName(drawable)) invalidDrawables++ else invalidComponents++
+                return null
             }
-            else if (calendar) calendars += mapping
-            else mappings += mapping
+            if (calendar) calendars += mapping else mappings += mapping
+            return mapping
         }
 
         fun build(): ParsedAppFilter {
@@ -75,7 +116,12 @@ internal object AppFilterParser {
             // independently of their order in the document. Retain every other
             // mapping, including mappings for applications not installed here.
             val calendarComponents = calendars.mapTo(hashSetOf()) { it.component }
-            return ParsedAppFilter(mappings.filterNot { it.component in calendarComponents } + calendars, notices.toList())
+            return ParsedAppFilter(
+                mappings.filterNot { it.component in calendarComponents } + calendars,
+                notices.toList(),
+                PackFallbackStyle(backgrounds.toList(), masks.toList(), upons.toList(), scale),
+                calendarEntries.toList(),
+            )
         }
     }
 
@@ -103,5 +149,4 @@ internal object AppFilterParser {
     private val PACKAGE_PATTERN = Regex("[A-Za-z_][A-Za-z0-9_]*(\\.[A-Za-z_][A-Za-z0-9_]*)+")
     private val CLASS_PATTERN = Regex("[A-Za-z_$][A-Za-z0-9_$]*(\\.[A-Za-z_$][A-Za-z0-9_$]*)*")
     private val DRAWABLE_PATTERN = Regex("[A-Za-z_][A-Za-z0-9_]*")
-
 }

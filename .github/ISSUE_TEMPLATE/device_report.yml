@@ -1,0 +1,54 @@
+name: Device compatibility report
+description: Share whether Magic Themer works on your HONOR or Huawei device
+labels: ["compatibility"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Help build a list of tested devices! Only the **HONOR Magic V5 (MagicOS 10 EU)** has been tested by the author.
+
+  - type: input
+    id: device
+    attributes:
+      label: Device model
+      placeholder: "HONOR Magic7 Pro"
+    validations:
+      required: true
+
+  - type: input
+    id: magicos
+    attributes:
+      label: MagicOS / EMUI & Android version
+      placeholder: "MagicOS 9.0.0.xxx (Global), Android 15"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: format
+    attributes:
+      label: Theme format tested
+      options:
+        - ".hnt"
+        - ".hwt"
+        - "Both .hnt and .hwt"
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: results
+    attributes:
+      label: What worked?
+      options:
+        - label: Theme appeared in HONOR Themes → My downloads
+        - label: Required Force stop on Themes app before appearing
+        - label: Icons applied cleanly via Customize → Icons
+        - label: Pack mask/background styled unmatched apps
+        - label: Themed icons were not unexpectedly cropped by the pack mask
+        - label: Live calendar icon updated the date
+        - label: Icons stayed applied after reboot
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Extra notes or screenshots
+      placeholder: Any quirks, region notes, or screenshots.

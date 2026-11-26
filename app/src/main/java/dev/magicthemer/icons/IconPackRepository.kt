@@ -90,7 +90,17 @@ class IconPackRepository(context: Context) {
         if (unavailable.isNotEmpty()) {
             warnings += "${unavailable.size} catalogue resources are missing from the installed icon pack. Choose another icon for affected apps."
         }
-        return PackData(pack, mappings, warnings.distinct(), drawables.toList(), unavailable)
+        val rawStyle = appfilter?.fallbackStyle ?: PackFallbackStyle()
+        val fallbackStyle = PackFallbackStyle(
+            backgrounds = rawStyle.backgrounds.filter { drawableId(resources, pack.packageName, it) != 0 },
+            masks = rawStyle.masks.filter { drawableId(resources, pack.packageName, it) != 0 },
+            upons = rawStyle.upons.filter { drawableId(resources, pack.packageName, it) != 0 },
+            scale = rawStyle.scale,
+        )
+        val calendarMappings = appfilter?.calendarMappings.orEmpty().filter { cal ->
+            listOf(1, 8, 15, 22).count { day -> drawableId(resources, pack.packageName, cal.prefix + day) != 0 } >= 4
+        }
+        return PackData(pack, mappings, warnings.distinct(), drawables.toList(), unavailable, fallbackStyle, calendarMappings)
     }
 
     /** Draw one icon on demand, flattening bitmap, vector and adaptive resources. */
@@ -98,11 +108,20 @@ class IconPackRepository(context: Context) {
 
     /** Render a gallery alternative, including artwork without an app mapping. */
     fun renderDrawable(data: PackData, drawableName: String, size: Int): Bitmap? {
+        if (!data.isDrawableAvailable(drawableName)) return null
+        return renderPackResource(data.pack.packageName, drawableName, size)
+    }
+
+    /**
+     * Render any drawable resource from an installed pack by name, including
+     * fallback masks/backgrounds and dynamic calendar days not listed in drawable.xml.
+     */
+    fun renderPackResource(packPackage: String, drawableName: String, size: Int): Bitmap? {
         require(size in 32..1024) { "Icon size must be between 32 and 1024 pixels." }
-        if (!data.isDrawableAvailable(drawableName) || !AppFilterParser.validPackageName(data.pack.packageName) || !AppFilterParser.validDrawableName(drawableName)) return null
+        if (!AppFilterParser.validPackageName(packPackage) || !AppFilterParser.validDrawableName(drawableName)) return null
         return try {
-            val resources = resources(data.pack.packageName)
-            val id = drawableId(resources, data.pack.packageName, drawableName)
+            val resources = resources(packPackage)
+            val id = drawableId(resources, packPackage, drawableName)
             if (id == 0) return null
             val value = TypedValue()
             resources.getValue(id, value, true)

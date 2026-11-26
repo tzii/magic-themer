@@ -4,12 +4,12 @@ plugins {
 
 android {
     namespace = "dev.magicthemer.fixture"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "dev.magicthemer.fixture"
         minSdk = 26
-        targetSdk = 36
+        targetSdk = 37
         versionCode = 1
         versionName = "1.0"
     }

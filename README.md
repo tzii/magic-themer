@@ -37,17 +37,20 @@ HONOR Themes doesn't support third-party icon packs. **Magic Themer** reads an i
 
 - **Reads your installed packs** — supports common Android launcher formats (Nova, ADW, Lawnchair, Smart Launcher, and others).
 - **Whole pack or installed apps only** — export every app the pack knows about (including apps you haven't installed yet) or only what's on your phone.
-- **Smart gap filling** — **Needs icon** lists uncovered apps and suggests matching icons based on app name, category, and whether it plays music or video.
+- **Style unmatched apps & live calendar** — optionally exports a pack's mask, backgrounds and overlay (`icon_mask.png`, `icon_background_*.png`, `icon_border.png`) plus HONOR's live calendar background and date color when the pack defines them.
+- **Smart gap filling & icon requests** — **Needs icon** lists uncovered apps, suggests matching icons by name or category, and lets you share the remaining list as a ready-to-send icon request for pack authors.
 - **Original icons toggle** — preview each app's real icon instead of your currently active theme's icon so you can see what a theme actually covers.
 - **Forgiving search** — searches across apps and pack artwork even with typos, split words, or initials.
 - **Non-destructive `.hnt` editing** — opens existing ordinary `.hnt` themes to edit icons, name, designer, and description while keeping wallpapers, fonts, and other modules intact. Always saves a new copy; the original is never overwritten.
 - **Verified exports** — reads saved themes back and verifies file size and SHA-256 checksum before reporting success.
 - **Honest about limits** — flags apps HONOR can't theme (such as builds renamed after compilation).
-- **Adaptive & private** — light and dark themes, responsive layouts for foldables, tablets, and landscape, ~1.6 MB APK, zero internet permission.
+- **Adaptive, multilingual & private** — English and Italian translations, light and dark themes, responsive layouts for foldables, tablets, and landscape, ~1.6 MB APK, zero internet permission.
 
 ## Install
 
 1. Download the latest APK (and optional SHA-256 checksum) from [**Releases**](https://github.com/tzii/magic-themer/releases/latest) and install it (requires **Android 8.0+**).
+   - **Obtainium:** add `https://github.com/tzii/magic-themer` to track GitHub Releases automatically.
+   - **IzzyOnDroid / Fastlane:** store-listing metadata lives in `fastlane/metadata/android/`.
 2. Install any icon packs from Google Play as usual. Magic Themer only reads packs already on your phone; it does not download or unlock paid packs.
 
 > [!NOTE]
@@ -71,7 +74,7 @@ Use **Open .hnt** (or **Open theme file** in the menu). Selecting an icon pack d
 ## Compatibility & limitations
 
 - Tested on an **HONOR Magic V5, MagicOS 10** (EU). Other HONOR and Huawei devices may work but are untested.
-- Icons are exported as static `192 × 192` px PNGs. Dynamic calendars and clocks, pack masks, icon backgrounds, and scaling for unmapped apps aren't reproduced.
+- Icons are exported as `192 × 192` px PNGs. Pack fallback masks/backgrounds and live calendar icons are experimental and can be toggled in the **Theme** tab; dynamic clocks are exported as static icons.
 - HONOR themes one icon per app package, so apps with multiple launcher activities share one icon.
 - New wallpapers, fonts, lock screens, and system UI can't be created; imported ones are preserved when editing an existing theme.
 - Encrypted, signed, or otherwise unusual theme formats aren't supported.
@@ -79,7 +82,7 @@ Use **Open .hnt** (or **Open theme file** in the menu). Selecting an icon pack d
 
 ## Build from source
 
-Requirements: **Android SDK Platform 36**, **Build Tools 36.0.0**, and **JDK 17+** (Android Studio's bundled JBR works).
+Requirements: **Android SDK Platform 37** and **JDK 17+** (Android Studio's bundled JBR works).
 
 ```powershell
 $env:JAVA_HOME = 'C:\Program Files\Android\Android Studio\jbr'

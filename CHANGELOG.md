@@ -1,7 +1,13 @@
 # Changelog
 
-## Unreleased
+## 0.8.0 (unreleased)
 
+- **Style unmatched apps like the pack** (experimental, opt-in in **Theme**, needs phone check): parses `<iconback>`, `<iconmask>`, `<iconupon>`, and `<scale>` from `appfilter.xml` and exports HONOR's `icon_mask.png` (alpha-inverted from Android's `DST_OUT` mask), `icon_background_*.png`, and `icon_border.png` so HONOR can style uncovered apps.
+- **Live calendar icon** (experimental, opt-in in **Theme**, needs phone check): reconstructs a clean `dynamic_icons/com.android.calendar/calendar_background.png` and extracts the pack's date text color into `com.hihonor.android.launcher` from the pack's `<calendar>` day drawables.
+- **Translations & Italian UI**: moved app UI text into Android string resources (`values/strings.xml`) and added an Italian translation (`values-it/strings.xml`). Low-level archive/parser diagnostics remain in English.
+- **Share icon requests**: share the **Needs icon** list as a formatted icon request (app names, `ComponentInfo`, Play Store links, and `appfilter.xml` entries) from the **Needs icon** filter or menu.
+- **Store metadata & issue templates**: added Fastlane metadata (`fastlane/metadata/android/`) in English and Italian for IzzyOnDroid / Obtainium, plus GitHub issue forms for bug and device compatibility reports.
+- **Toolchain & Android 17**: updated to Gradle 9.9.2, Android Gradle Plugin 9.5.3, Kotlin 2.4.21, Material Components 1.14.0, and `compileSdk` / `targetSdk` 37.
 - Redrawn, cuter launcher icon: a bigger round head with glossy eyes, blush and a happy smile, and tiny paws hugging the palette card. The tall ribbon on the right is gone. The themed (monochrome) icon, the README icon and the website mascot match.
 
 ## 0.7.1

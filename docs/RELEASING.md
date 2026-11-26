@@ -41,6 +41,7 @@ The project website (`docs/index.html`, served by GitHub Pages from `main`) link
 - the **Ready to theme?** section: its text and the button label
 - `softwareVersion` in the JSON-LD block in `<head>`
 - the **Download APK (vX.Y.Z)** label at the top of `README.md`
+- Fastlane release notes in `fastlane/metadata/android/en-US/changelogs/<versionCode>.txt` and `fastlane/metadata/android/it-IT/changelogs/<versionCode>.txt` (for IzzyOnDroid / F-Droid)
 
 Search both files for the previous version number to find every reference, but leave the application ID notes ("From v0.7.1 …") as they are. If the APK size changed noticeably, also update `1.6 MB` in the website's privacy section and the README's feature list.
 

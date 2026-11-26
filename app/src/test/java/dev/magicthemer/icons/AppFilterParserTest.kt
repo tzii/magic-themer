@@ -39,11 +39,28 @@ class AppFilterParserTest {
     }
 
     @Test fun reportsUnsupportedFallbackAndDynamicClock() {
-        val result = parse("""<resources><iconback img1="back"/><iconmask img1="mask"/>
+        val result = parse("""<resources><iconback img2="back2" img1="back1"/><iconmask img1="mask"/><iconupon img1="upon"/>
             <scale factor="0.75"/><dynamic-clock drawable="clock"/></resources>""")
         assertEquals(2, result.warnings.size)
         assertTrue(result.warnings.any { it.contains("unmapped apps") })
         assertTrue(result.warnings.any { it.contains("hands do not update") })
+        assertEquals(listOf("back1", "back2"), result.fallbackStyle.backgrounds)
+        assertEquals(listOf("mask"), result.fallbackStyle.masks)
+        assertEquals(listOf("upon"), result.fallbackStyle.upons)
+        assertEquals(0.75f, result.fallbackStyle.scale, 0.001f)
+    }
+
+    @Test fun calendarMappingPreservesPrefixAlongsideSnapshot() {
+        val result = parse("""<resources>
+            <calendar component="ComponentInfo{com.hihonor.calendar/.Main}" prefix="cal_"/>
+            <calendar component=":CALENDAR" prefix="nova_cal_"/>
+            </resources>""", day = 12)
+        assertEquals(listOf("cal_12"), result.mappings.map { it.drawableName })
+        assertEquals(2, result.calendarMappings.size)
+        assertEquals("cal_", result.calendarMappings[0].prefix)
+        assertEquals("com.hihonor.calendar", result.calendarMappings[0].packageName)
+        assertEquals(":CALENDAR", result.calendarMappings[1].component)
+        assertEquals("nova_cal_", result.calendarMappings[1].prefix)
     }
 
     @Test fun retainsPackageOnlyMappingsWithoutInventingActivity() {

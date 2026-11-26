@@ -236,6 +236,44 @@ class ThemeArchiveTest {
         assertEquals(20_000, count)
     }
 
+    @Test fun fallbackStyleAndLiveCalendarEmitExpectedHonorEntries() {
+        val output = ByteArrayOutputStream()
+        val maskPng = png + byteArrayOf(1)
+        val borderPng = png + byteArrayOf(2)
+        val bg0 = png + byteArrayOf(3)
+        val bg1 = png + byteArrayOf(4)
+        val calBg = png + byteArrayOf(5)
+        ThemeArchive.write(
+            output, "Styled", "Pack", listOf(ThemeIcon("com.example.app", png)), "hnt",
+            modifiedMillis = null,
+            fallbackStyle = ThemeFallbackStyle(maskPng, borderPng, listOf(bg0, bg1)),
+            dynamicCalendar = ThemeDynamicCalendar(calBg, "#112233"),
+        )
+        val outer = unzip(output.toByteArray())
+        assertTrue(outer.containsKey("com.hihonor.android.launcher"))
+        val launcher = unzip(outer.getValue("com.hihonor.android.launcher"))
+        assertTrue(launcher.getValue("theme.xml").decodeToString().contains("#112233"))
+        assertTrue(launcher.getValue("night/theme.xml").decodeToString().contains("#112233"))
+        val inner = unzip(outer.getValue("icons"))
+        assertArrayEquals(maskPng, inner["icon_mask.png"])
+        assertArrayEquals(borderPng, inner["icon_border.png"])
+        assertArrayEquals(bg0, inner["icon_background_0.png"])
+        assertArrayEquals(bg1, inner["icon_background_1.png"])
+        assertArrayEquals(calBg, inner["dynamic_icons/com.android.calendar/calendar_background.png"])
+        val innerOrder = inner.keys.toList()
+        assertTrue(innerOrder.indexOf("dynamic_icons/") < innerOrder.indexOf("dynamic_icons/com.android.calendar/calendar_background.png"))
+        assertTrue(innerOrder.indexOf("dynamic_icons/com.android.calendar/") < innerOrder.indexOf("dynamic_icons/com.android.calendar/calendar_background.png"))
+        // Validation rejects invalid calendar color and > 16 backgrounds.
+        rejects {
+            ThemeArchive.write(ByteArrayOutputStream(), "Bad", "Pack", listOf(ThemeIcon("com.example.app", png)), "hnt",
+                dynamicCalendar = ThemeDynamicCalendar(calBg, "not-a-color"))
+        }
+        rejects {
+            ThemeArchive.write(ByteArrayOutputStream(), "Bad", "Pack", listOf(ThemeIcon("com.example.app", png)), "hnt",
+                fallbackStyle = ThemeFallbackStyle(backgroundPngs = List(17) { png }))
+        }
+    }
+
     private fun export(
         title: String = "Example theme",
         source: String = "Example pack",

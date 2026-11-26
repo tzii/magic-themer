@@ -98,7 +98,7 @@ object ThemeEditor {
             return ThemeDocument(
                 file.absoluteFile, metadataText(xml, "title"), metadataText(xml, "designer"),
                 metadataText(xml, "briefInfo", "briefinfo"), mappedPaths.mapValues { it.value.first() },
-                warnings, repairable, cache, mappedPaths, digest(file), digest(cache),
+                warnings, repairable, "com.hihonor.android.launcher" in outerNames, cache, mappedPaths, digest(file), digest(cache),
             )
         } catch (failure: Exception) {
             cache.delete()
@@ -129,16 +129,32 @@ object ThemeEditor {
         preview: ByteArray? = null,
         iconsPreview: ByteArray? = null,
         upgradeMinimalProfile: Boolean = false,
+        fallbackStyle: ThemeFallbackStyle? = null,
+        dynamicCalendar: ThemeDynamicCalendar? = null,
     ) {
         checkText(title, 64, "Theme title", allowBlank = false)
         checkText(designer, 128, "Designer")
         checkText(briefInfo, 4096, "Description")
         require(replacements.size <= MAX_ENTRIES) { "Too many replacement icons." }
+        fun checkReplacementPng(label: String, png: ByteArray) {
+            require(png.size in pngSignature.size..MAX_ICON_BYTES && pngSignature.indices.all { png[it] == pngSignature[it] }) {
+                "Replacement for $label is not a supported PNG (maximum 512 KiB)."
+            }
+        }
         replacements.forEach { (name, png) ->
             checkPackage(name)
-            require(png.size in pngSignature.size..MAX_ICON_BYTES && pngSignature.indices.all { png[it] == pngSignature[it] }) {
-                "Replacement for $name is not a supported PNG (maximum 512 KiB)."
-            }
+            checkReplacementPng(name, png)
+        }
+        val activeFallback = fallbackStyle?.takeUnless { it.isEmpty }
+        activeFallback?.let { style ->
+            require(style.backgroundPngs.size <= ThemeDynamicAssets.MAX_BACKGROUNDS) { "Too many fallback background icons." }
+            style.maskPng?.let { checkReplacementPng("icon_mask.png", it) }
+            style.borderPng?.let { checkReplacementPng("icon_border.png", it) }
+            style.backgroundPngs.forEachIndexed { index, png -> checkReplacementPng("icon_background_$index.png", png) }
+        }
+        dynamicCalendar?.let { calendar ->
+            checkReplacementPng("calendar_background.png", calendar.backgroundPng)
+            require(ThemeDynamicAssets.isValidHexColor(calendar.dateColorHex)) { "Invalid dynamic calendar date color." }
         }
         removedPackages.forEach(::checkPackage)
         require(replacements.keys.intersect(removedPackages).isEmpty()) { "An icon cannot be replaced and removed at the same time." }
@@ -151,10 +167,11 @@ object ThemeEditor {
         require(digest(document.sourceFile).contentEquals(document.sourceDigest)) { "Source theme changed; import it again." }
         require(digest(document.iconsFile).contentEquals(document.iconsDigest)) { "Working icons changed; import the theme again." }
 
-        val iconChanges = replacements.isNotEmpty() || removedPackages.isNotEmpty() || replaceAllIcons || upgradeMinimalProfile
+        val iconChanges = replacements.isNotEmpty() || removedPackages.isNotEmpty() || replaceAllIcons || upgradeMinimalProfile || activeFallback != null || dynamicCalendar != null
         val editedIcons = if (iconChanges) File.createTempFile("theme-edited-", ".zip", document.sourceFile.parentFile) else null
+        var addedLauncher: File? = null
         try {
-            val innerExpandedBytes = if (editedIcons != null) rewriteIcons(document, editedIcons, replacements, removedPackages, replaceAllIcons, upgradeMinimalProfile)
+            val innerExpandedBytes = if (editedIcons != null) rewriteIcons(document, editedIcons, replacements, removedPackages, replaceAllIcons, upgradeMinimalProfile, activeFallback, dynamicCalendar)
                 else ZipFile(document.iconsFile, StandardCharsets.UTF_8).use { checkedEntries(it).sumOf { entry -> entry.size } }
             ZipFile(document.sourceFile, StandardCharsets.UTF_8).use { source ->
                 val entries = checkedEntries(source)
@@ -192,37 +209,85 @@ object ThemeEditor {
                     }
                     unlockPreview?.let { changed["preview/preview_unlock_0.jpg"] = it }
                 }
+                if (dynamicCalendar != null && entries.none { it.name == "com.hihonor.android.launcher" }) {
+                    val launcher = File.createTempFile("theme-edited-launcher-", ".zip", document.sourceFile.parentFile)
+                    addedLauncher = launcher
+                    val themeXml = ThemeDynamicAssets.launcherThemeXml(dynamicCalendar.dateColorHex)
+                    val folder = ThemeZip.Bytes(ByteArray(0))
+                    launcher.outputStream().use { stream ->
+                        ThemeZip.create(stream, linkedMapOf(
+                            "theme.xml" to ThemeZip.Bytes(themeXml),
+                            "night/" to folder,
+                            "night/theme.xml" to ThemeZip.Bytes(themeXml),
+                        ), document.sourceFile.parentFile, System.currentTimeMillis())
+                    }
+                }
                 // Validate the completed output's expanded size before touching the destination.
-                var outputBytes = (editedIcons ?: document.iconsFile).length()
+                var outputBytes = (editedIcons ?: document.iconsFile).length() + (addedLauncher?.length() ?: 0L)
                 entries.filter { it.name != "icons" }.forEach { outputBytes += changed[it.name]?.size?.toLong() ?: it.size }
                 changed.filterKeys { name -> entries.none { it.name == name } }.values.forEach { outputBytes += it.size }
                 require(outputBytes <= MAX_EXPANDED_BYTES - innerExpandedBytes) { "Edited theme data exceeds 512 MiB." }
-                require(entries.size + changed.keys.count { name -> entries.none { it.name == name } } <= MAX_ENTRIES) { "Edited theme has too many entries." }
+                val newOuterEntries = changed.keys.count { name -> entries.none { it.name == name } } + if (addedLauncher != null) 1 else 0
+                require(entries.size + newOuterEntries <= MAX_ENTRIES) { "Edited theme has too many entries." }
 
                 val changedMembers = linkedMapOf<String, ThemeZip.Content>()
                 changed.forEach { (name, bytes) -> changedMembers[name] = ThemeZip.Bytes(bytes) }
+                addedLauncher?.let { changedMembers["com.hihonor.android.launcher"] = ThemeZip.FileContent(it) }
                 editedIcons?.takeUnless { digest(it).contentEquals(document.iconsDigest) }?.let { changedMembers["icons"] = ThemeZip.FileContent(it) }
                 output.use { ThemeZip.rewrite(document.sourceFile, it, changedMembers, normalizeDescriptors = upgradeMinimalProfile) }
             }
         } finally {
             editedIcons?.delete()
+            addedLauncher?.delete()
         }
     }
 
     /** Disposes only the private icons copy made by [open], leaving the source untouched. */
     fun close(document: ThemeDocument) { document.iconsFile.delete() }
 
-    private fun rewriteIcons(document: ThemeDocument, target: File, replacements: Map<String, ByteArray>, removed: Set<String>, replaceAll: Boolean, normalizeDescriptors: Boolean): Long {
+    private fun rewriteIcons(
+        document: ThemeDocument,
+        target: File,
+        replacements: Map<String, ByteArray>,
+        removed: Set<String>,
+        replaceAll: Boolean,
+        normalizeDescriptors: Boolean,
+        fallbackStyle: ThemeFallbackStyle?,
+        dynamicCalendar: ThemeDynamicCalendar?,
+    ): Long {
         val budget = Budget()
         ZipFile(document.iconsFile, StandardCharsets.UTF_8).use { source ->
             val entries = checkedEntries(source)
+            val existingNames = entries.mapTo(hashSetOf()) { it.name }
             val handled = hashSetOf<String>()
             var writtenCount = 0
             val changes = linkedMapOf<String, ThemeZip.Content>()
             val removedEntries = hashSetOf<String>()
+            val extraAssets = linkedMapOf<String, ByteArray>()
+            fallbackStyle?.let { style ->
+                style.maskPng?.let { extraAssets["icon_mask.png"] = it }
+                style.borderPng?.let { extraAssets["icon_border.png"] = it }
+                style.backgroundPngs.forEachIndexed { index, png -> extraAssets["icon_background_$index.png"] = png }
+            }
+            dynamicCalendar?.let { calendar ->
+                extraAssets["dynamic_icons/com.android.calendar/calendar_background.png"] = calendar.backgroundPng
+            }
             entries.forEach { entry ->
                 val name = iconPackage(entry.name).takeUnless { entry.isDirectory }
                 when {
+                    extraAssets.containsKey(entry.name) -> {
+                        val bytes = extraAssets.getValue(entry.name)
+                        budget.add(bytes.size.toLong())
+                        val unchanged = entry.size == bytes.size.toLong() && source.getInputStream(entry).use { it.readBytes().contentEquals(bytes) }
+                        if (!unchanged) changes[entry.name] = ThemeZip.Bytes(bytes)
+                        writtenCount++
+                    }
+                    fallbackStyle != null && !fallbackStyle.isEmpty &&
+                        (entry.name == "icon_mask.png" || entry.name == "icon_border.png" ||
+                            (entry.name.startsWith("icon_background") && entry.name.endsWith(".png"))) &&
+                        !extraAssets.containsKey(entry.name) -> {
+                        removedEntries.add(entry.name)
+                    }
                     name != null && name in removed -> removedEntries.add(entry.name)
                     name != null && replacements.containsKey(name) -> {
                         val bytes = replacements.getValue(name)
@@ -239,6 +304,19 @@ object ThemeEditor {
             replacements.toSortedMap().filterKeys { it !in handled }.forEach { (name, bytes) ->
                 budget.add(bytes.size.toLong())
                 changes["$name.png"] = ThemeZip.Bytes(bytes)
+                writtenCount++
+            }
+            if (dynamicCalendar != null) {
+                for (dir in listOf("dynamic_icons/", "dynamic_icons/com.android.calendar/")) {
+                    if (dir !in existingNames) {
+                        changes[dir] = ThemeZip.Bytes(ByteArray(0))
+                        writtenCount++
+                    }
+                }
+            }
+            extraAssets.filterKeys { it !in existingNames }.forEach { (entryName, bytes) ->
+                budget.add(bytes.size.toLong())
+                changes[entryName] = ThemeZip.Bytes(bytes)
                 writtenCount++
             }
             require(writtenCount <= MAX_ENTRIES) { "Edited icons module has too many entries." }

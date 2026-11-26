@@ -1,0 +1,6 @@
+- Optional fallback styling (pack mask, backgrounds, and overlay) for unmatched apps (experimental).
+- Optional live calendar icon support with dynamic HONOR background and date color (experimental).
+- Italian UI translation and Android string resources for future languages.
+- Share "Needs icon" list as a formatted icon request for pack authors.
+- Updated Gradle, AGP, Kotlin, Material Components, and Android 17 target SDK.
+- Redrawn mascot launcher icon.

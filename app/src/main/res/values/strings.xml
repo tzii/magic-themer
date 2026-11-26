@@ -1,4 +1,253 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Magic Themer</string>
+
+    <!-- Menu -->
+    <string name="menu_new_theme">New theme</string>
+    <string name="menu_open_theme">Open theme file</string>
+    <string name="menu_refresh_packs">Refresh packs</string>
+    <string name="menu_pack_details">Pack details</string>
+    <string name="menu_share_request">Share icon request</string>
+    <string name="menu_open_themes">Open HONOR Themes</string>
+    <string name="menu_how_to_apply">How to apply</string>
+    <string name="menu_settings">Settings</string>
+
+    <!-- Source card & actions -->
+    <string name="action_choose_pack">Choose pack</string>
+    <string name="action_open_hnt">Open .hnt</string>
+    <string name="action_change">Change</string>
+    <string name="action_close">Close</string>
+    <string name="action_done">Done</string>
+    <string name="action_refresh">Refresh</string>
+    <string name="action_reset">Reset</string>
+    <string name="action_use_original">Use original</string>
+    <string name="action_choose_anyway">Choose anyway</string>
+    <string name="action_use_for_app">Use for app</string>
+    <string name="action_open_themes">Open Themes</string>
+    <string name="action_app_info">App info</string>
+    <string name="action_source_code">Source code</string>
+    <string name="action_save_theme">Save theme</string>
+    <string name="action_save_theme_copy">Save theme copy</string>
+    <string name="action_share_icon_request">Share icon request</string>
+
+    <string name="source_choose_title">Choose a source</string>
+    <string name="source_choose_subtitle">An installed pack or an existing HONOR theme</string>
+    <string name="source_imported_fallback">Imported theme</string>
+    <string name="source_editing_copy">Editing a copy · %1$d icons</string>
+    <string name="source_editing_copy_with_pack">Editing a copy · %1$d icons · %2$s selected</string>
+    <string name="source_pack_counts">%1$d icons · %2$d app mappings</string>
+
+    <!-- Tabs -->
+    <string name="tab_apps">Apps</string>
+    <string name="tab_pack_icons">Pack icons</string>
+    <string name="tab_theme">Theme</string>
+
+    <!-- Apps page -->
+    <string name="search_apps_hint">Search apps or packages</string>
+    <string name="search_pack_icons_hint">Search pack icons</string>
+    <string name="search_icons_or_apps_hint">Search icons or apps</string>
+    <string name="search_names_or_packages_hint">Search names or packages</string>
+    <string name="filter_all">All</string>
+    <string name="filter_all_count">All (%1$d)</string>
+    <string name="filter_needs_icon">Needs icon</string>
+    <string name="filter_needs_icon_count">Needs icon (%1$d)</string>
+    <string name="filter_customized">Customized</string>
+    <string name="filter_customized_count">Customized (%1$d)</string>
+    <string name="filter_unthemeable">HONOR can\'t theme</string>
+    <string name="filter_unthemeable_count">HONOR can\'t theme (%1$d)</string>
+    <string name="switch_original_icons">Original icons</string>
+    <string name="summary_finding_apps">Finding installed apps…</string>
+    <string name="summary_all_themed">Every app has a theme icon</string>
+    <string name="summary_all_themed_with_unthemeable">Every app has a theme icon · %1$d can\'t be themed</string>
+    <string name="summary_no_apps_match">No apps match</string>
+    <string name="summary_unthemeable_detail">Renamed builds HONOR can\'t theme · tap for details</string>
+    <plurals name="summary_matches">
+        <item quantity="one">%1$d match · best first</item>
+        <item quantity="other">%1$d matches · best first</item>
+    </plurals>
+    <string name="summary_themed_of_total">%1$d of %2$d apps themed</string>
+    <string name="summary_themed_of_total_with_unthemeable">%1$d of %2$d apps themed · %3$d can\'t be themed</string>
+
+    <!-- App status badges -->
+    <string name="status_customized">Customized</string>
+    <string name="status_customized_unthemeable">Customized · HONOR can\'t theme this build</string>
+    <string name="status_unthemeable">HONOR can\'t theme this build</string>
+    <string name="status_needs_icon">Needs icon</string>
+    <string name="status_needs_icon_original">Needs icon · using original</string>
+    <string name="status_needs_icon_unavailable">Needs icon · artwork unavailable</string>
+    <string name="status_needs_icon_unreadable">Needs icon · image cannot be read</string>
+    <string name="status_themed_pack">Themed · pack</string>
+    <string name="status_themed_imported">Themed · imported</string>
+    <string name="status_themed_imported_unavailable">Themed · imported\nReplacement unavailable</string>
+    <string name="a11y_original_and_themed">original and themed icons</string>
+
+    <!-- Pack icons page -->
+    <string name="icon_summary_empty">Choose a pack to browse its artwork</string>
+    <string name="icon_summary_count">%1$d of %2$d icons · alternatives included</string>
+
+    <!-- Theme page -->
+    <string name="section_details">Details</string>
+    <string name="section_icons">Icons</string>
+    <string name="section_file">File</string>
+    <string name="field_theme_name">Theme name</string>
+    <string name="field_designer">Designer</string>
+    <string name="field_description">Description</string>
+    <string name="field_theme_format">Theme format</string>
+    <string name="format_hnt">HONOR (.hnt)</string>
+    <string name="format_hwt">Compatibility (.hwt)</string>
+    <string name="switch_whole_pack">Whole icon pack</string>
+    <string name="note_whole_pack">Include every app the pack covers, even apps that aren\'t installed on this phone.</string>
+    <string name="switch_style_unmatched">Style unmatched apps</string>
+    <string name="note_style_unmatched">Export the pack\'s mask, backgrounds and overlay so HONOR can style apps without a dedicated icon.</string>
+    <string name="note_style_unmatched_unavailable">This icon pack doesn\'t define fallback masks or backgrounds.</string>
+    <string name="switch_live_calendar">Live calendar icon</string>
+    <string name="note_live_calendar">Export a dynamic HONOR calendar background and date color so the day updates automatically.</string>
+    <string name="note_live_calendar_unavailable">This icon pack doesn\'t define dynamic calendar icons.</string>
+    <string name="action_apply_whole_pack">Apply whole pack to theme</string>
+    <string name="action_pack_applied_again">Pack applied · apply again</string>
+    <string name="switch_replace_icons">Replace existing icon set</string>
+    <string name="note_replace_icons">When applying a pack, drop the theme\'s old app icons instead of keeping those the pack doesn\'t cover.</string>
+    <string name="note_file_spec">192 px PNG icons · always saved as a new file</string>
+    <string name="switch_repair_compatibility">Repair theme compatibility</string>
+    <string name="note_repair_compatibility">Convert this minimal legacy theme to the experimental HONOR profile; your icons and designer credit are preserved.</string>
+
+    <!-- Status messages -->
+    <string name="status_initial">Choose a pack or open a theme to begin.</string>
+    <string name="status_loading_local">Reading local icon packs and apps…</string>
+    <string name="status_working_theme_unavailable">The working theme is unavailable. Open the original .hnt file again.</string>
+    <string name="status_restore_theme_failed">Could not restore the theme.</string>
+    <string name="status_restore_pack_failed">Could not restore this pack.</string>
+    <string name="status_theme_opened_ready">Theme opened. Edit its icons or metadata, then save a copy.</string>
+    <string name="status_pack_ready">Pack ready. Tap an app to change its icon.</string>
+    <string name="status_choose_source">Choose a pack or open an existing .hnt theme.</string>
+    <string name="status_refreshing_packs">Refreshing installed packs…</string>
+    <plurals name="status_packs_found">
+        <item quantity="one">%1$d installed pack found.</item>
+        <item quantity="other">%1$d installed packs found.</item>
+    </plurals>
+    <string name="status_reading_pack">Reading %1$s…</string>
+    <string name="status_pack_loaded_new">%1$d icons ready to browse.</string>
+    <string name="status_pack_loaded_imported">Pack loaded. Apply it explicitly or choose individual icons.</string>
+    <string name="status_pack_will_replace">%1$s will replace this theme\'s static icon set.</string>
+    <string name="status_pack_will_merge">%1$s will merge with this theme\'s static icon set.</string>
+    <string name="status_icon_reset">Icon reset for %1$s.</string>
+    <string name="status_using_original">The original app icon will be used.</string>
+    <string name="status_icon_selected">Icon selected for %1$s.</string>
+    <string name="status_opening_theme">Opening and validating theme…</string>
+    <string name="status_theme_opened_copy">Theme opened. Original file preserved; saving creates a new copy.</string>
+    <string name="status_new_theme">New icon theme. Choose a pack, then save.</string>
+    <string name="status_preparing_theme">Preparing theme…</string>
+    <string name="status_rendering_icons">Rendering %1$d / %2$d app icons…</string>
+    <string name="status_export_choose_location">%1$s Choose where to save the new file.</string>
+    <string name="status_save_cancelled">Save cancelled. Your edits are still available.</string>
+    <string name="status_working_export_unavailable">The working export is unavailable. Save your theme again.</string>
+    <string name="status_saving_file">Saving new theme file…</string>
+    <string name="status_verified_save">%1$s Verified %2$s (%3$d bytes).</string>
+    <string name="status_saved_file_fallback">saved file</string>
+    <string name="status_open_themes_fallback">Open Themes from your home screen.</string>
+    <string name="status_open_themes_info_fallback">Open Settings → Apps → Themes → Force stop, then reopen Themes.</string>
+    <string name="status_operation_failed">This operation failed. Try again.</string>
+    <string name="status_no_missing_to_share">Every app already has a theme icon.</string>
+    <string name="status_share_unavailable">No app is available to share the icon request.</string>
+
+    <!-- Export report -->
+    <plurals name="report_icons_saved">
+        <item quantity="one">%1$d static icon saved</item>
+        <item quantity="other">%1$d static icons saved</item>
+    </plurals>
+    <plurals name="report_missing_skipped">
+        <item quantity="one">%1$d missing drawable skipped</item>
+        <item quantity="other">%1$d missing drawables skipped</item>
+    </plurals>
+    <string name="report_fallback_included">pack mask/style included</string>
+    <string name="report_fallback_skipped">pack mask/style could not be rendered</string>
+    <string name="report_live_calendar_included">live calendar included</string>
+    <string name="report_live_calendar_existing_launcher">live calendar background included (existing launcher colors kept)</string>
+    <string name="report_live_calendar_skipped">live calendar could not be built</string>
+    <string name="error_enter_theme_name">Enter a theme name</string>
+
+    <!-- Pickers & sheets -->
+    <string name="dialog_install_pack_title">Install an icon pack</string>
+    <string name="dialog_install_pack_message">Install a compatible icon pack from Google Play, then use Refresh packs. Packs expose their public appfilter.xml and drawable catalogue; no paid content is downloaded or unlocked.</string>
+    <string name="sheet_choose_pack_title">Choose icon pack</string>
+    <string name="sheet_choose_pack_subtitle">Installed packs on this device</string>
+    <string name="sheet_icon_for_title">Icon for %1$s</string>
+    <string name="dialog_no_pack_for_app_message">Choose an icon pack to browse replacements. You can also remove this theme\'s custom icon and use the original app icon.</string>
+    <string name="sheet_choose_app_title">Choose an app</string>
+    <string name="sheet_choose_app_subtitle">Use %1$s for…</string>
+    <string name="sheet_suggested_header">Suggested icons</string>
+    <string name="sheet_suggested_count">Suggested icons (%1$d) · tap to choose</string>
+    <string name="sheet_suggested_none">No close suggestions · browse all icons below</string>
+    <string name="sheet_all_pack_icons">All pack icons</string>
+    <string name="sheet_all_pack_icons_count">All pack icons (%1$d)</string>
+    <string name="sheet_matching_icons_count">Matching icons (%1$d) · best first</string>
+
+    <!-- Dialogs -->
+    <string name="dialog_unthemeable_title">HONOR can\'t theme %1$s</string>
+    <string name="dialog_unthemeable_message">This build is installed as %1$s, but its icon resources are named %2$s. HONOR\'s theme engine only applies a theme icon when both names match, so no theme can change this icon. A build whose package matches its resources (here %2$s) can be themed.\n\nYou can still choose an icon. It is saved in the theme, but HONOR shows the app\'s own icon.</string>
+    <string name="dialog_theme_saved_title">Theme saved</string>
+    <string name="dialog_theme_saved_body">%1$s\n\nSave or copy it to internal storage / HONOR / Themes, then open HONOR Themes → Me → My downloads → Customize → Icons.\n\nIf your theme is missing, tap App info, choose Force stop, then reopen Themes. This refreshed the list on the tested Magic V5.</string>
+    <string name="report_verified_details">%1$s\n\nFile: %2$s\n%3$d bytes verified\nSHA-256: %4$s</string>
+    <string name="report_name_unavailable">name unavailable</string>
+    <string name="warning_provider_no_filename">The provider did not report the filename. Check that the saved name ends in %1$s.</string>
+    <string name="warning_provider_bad_extension">Warning: the provider saved an unexpected extension. Rename %1$s to end in %2$s before opening HONOR Themes.</string>
+    <string name="dialog_pack_details_body">%1$s\n\n%2$d catalogue icons · %3$d app mappings\n%4$s\n\n%5$s\n\nWhole icon pack exports every known app mapping. Alternative and unmapped artwork can be assigned manually. Dynamic clocks are exported as static icons.</string>
+    <string name="pack_details_no_warnings">No parsing warnings.</string>
+    <string name="pack_details_extras_both">Fallback styling and live calendar supported.</string>
+    <string name="pack_details_extras_fallback">Fallback mask/background styling supported.</string>
+    <string name="pack_details_extras_calendar">Live calendar icon supported.</string>
+    <string name="pack_details_extras_none">Static mapped icons only (no fallback mask or live calendar).</string>
+    <string name="dialog_imported_theme_title">Imported theme</string>
+    <string name="dialog_imported_theme_body">%1$s\n%2$d static package icons\n\n%3$s</string>
+    <string name="imported_theme_default_note">Other theme modules and unknown configuration are preserved when saving a copy.</string>
+    <string name="dialog_guide_title">Apply your theme</string>
+    <string name="dialog_guide_message">1. Save or copy the exported file to internal storage / HONOR / Themes.\n\n2. Open HONOR Themes → Me → My downloads. If your theme is missing, tap App info, choose Force stop, then reopen Themes.\n\n3. Choose Customize → Icons and select your theme. Menu labels can vary by region.\n\nIcon application and persistence are confirmed on the tested Magic V5 / MagicOS 10.0.0.168 EU. New exports use the tested wallpaper-free layout. Themes may keep an old downloads list until it is force-stopped and reopened.\n\nWhen a pack includes fallback masks/backgrounds or dynamic calendars, Magic Themer can export them too (check how they look on your phone and toggle them in the Theme tab if needed).\n\nImported ordinary ZIP themes are saved as a new copy. Static package PNGs and title, designer, and description can be edited; other modules and authored previews are preserved. Selecting a pack does not alter an imported theme until you apply the pack or assign an icon.\n\nUse Needs icon to find apps without usable artwork, or share the list as an icon request for the pack\'s author.\n\nUse exports personally; artwork remains owned by its creator.</string>
+    <string name="dialog_open_themes_manual_title">Open HONOR Themes manually</string>
+    <string name="dialog_open_themes_manual_message">Open the Themes app, or Settings → Home screen &amp; personalization → Themes.</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_section_app_list">App list</string>
+    <string name="settings_show_original">Show original app icons</string>
+    <string name="settings_show_original_note">HONOR reports icons from the applied theme. Turn this on to see each app\'s own icon instead.</string>
+    <string name="settings_section_new_themes">New themes</string>
+    <string name="settings_designer_credit">Designer credit</string>
+    <string name="settings_designer_note">Leave empty to use this phone\'s name: %1$s</string>
+    <string name="settings_section_about">About</string>
+    <string name="settings_about_text">Magic Themer %1$s\nFree and open source under the GNU GPL v3. No ads, accounts, analytics or network access.</string>
+
+    <!-- Share icon request -->
+    <string name="share_request_chooser">Share icon request</string>
+    <string name="share_request_subject">Icon request for %1$s</string>
+    <string name="share_request_subject_generic">Icon request</string>
+
+    <!-- Suggestion reasons & categories -->
+    <string name="reason_launcher_activity">Matches launcher activity</string>
+    <string name="reason_mapped_to_app">Mapped to this app</string>
+    <string name="reason_app_name">Matches app name</string>
+    <string name="reason_app_name_words">Shares app name words</string>
+    <string name="reason_known_app_name">Known app name</string>
+    <string name="reason_package_name">Matches package name</string>
+    <string name="reason_category_icon">%1$s icon</string>
+    <string name="reason_similar_category_app">Similar %1$s app</string>
+
+    <string name="category_music">Music</string>
+    <string name="category_video">Video</string>
+    <string name="category_games">Games</string>
+    <string name="category_transport">Transport</string>
+    <string name="category_maps">Maps</string>
+    <string name="category_photo">Photos and camera</string>
+    <string name="category_chat">Chat and social</string>
+    <string name="category_browser">Browser</string>
+    <string name="category_mail">Mail</string>
+    <string name="category_money">Banking and money</string>
+    <string name="category_shopping">Shopping</string>
+    <string name="category_food">Food and delivery</string>
+    <string name="category_news">News and reading</string>
+    <string name="category_notes">Notes and productivity</string>
+    <string name="category_files">Files and storage</string>
+    <string name="category_health">Health and fitness</string>
+    <string name="category_weather">Weather</string>
+    <string name="category_travel">Travel</string>
+    <string name="category_tools">Tools and settings</string>
 </resources>

@@ -1,0 +1,257 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Magic Themer</string>
+
+    <!-- Menu -->
+    <string name="menu_new_theme">Nuovo tema</string>
+    <string name="menu_open_theme">Apri file tema</string>
+    <string name="menu_refresh_packs">Aggiorna pacchetti</string>
+    <string name="menu_pack_details">Dettagli pacchetto</string>
+    <string name="menu_share_request">Condividi richiesta icone</string>
+    <string name="menu_open_themes">Apri Temi HONOR</string>
+    <string name="menu_how_to_apply">Come applicarlo</string>
+    <string name="menu_settings">Impostazioni</string>
+
+    <!-- Source card & actions -->
+    <string name="action_choose_pack">Scegli pacchetto</string>
+    <string name="action_open_hnt">Apri .hnt</string>
+    <string name="action_change">Cambia</string>
+    <string name="action_close">Chiudi</string>
+    <string name="action_done">Fine</string>
+    <string name="action_refresh">Aggiorna</string>
+    <string name="action_reset">Ripristina</string>
+    <string name="action_use_original">Usa originale</string>
+    <string name="action_choose_anyway">Scegli comunque</string>
+    <string name="action_use_for_app">Usa per app</string>
+    <string name="action_open_themes">Apri Temi</string>
+    <string name="action_app_info">Info app</string>
+    <string name="action_source_code">Codice sorgente</string>
+    <string name="action_save_theme">Salva tema</string>
+    <string name="action_save_theme_copy">Salva copia del tema</string>
+    <string name="action_share_icon_request">Condividi richiesta icone</string>
+
+    <string name="source_choose_title">Scegli una sorgente</string>
+    <string name="source_choose_subtitle">Un pacchetto di icone installato o un tema HONOR esistente</string>
+    <string name="source_imported_fallback">Tema importato</string>
+    <string name="source_editing_copy">Modifica di una copia · %1$d icone</string>
+    <string name="source_editing_copy_with_pack">Modifica di una copia · %1$d icone · %2$s selezionato</string>
+    <string name="source_pack_counts">%1$d icone · %2$d app mappate</string>
+
+    <!-- Tabs -->
+    <string name="tab_apps">App</string>
+    <string name="tab_pack_icons">Icone pacchetto</string>
+    <string name="tab_theme">Tema</string>
+
+    <!-- Apps page -->
+    <string name="search_apps_hint">Cerca app o pacchetti</string>
+    <string name="search_pack_icons_hint">Cerca icone nel pacchetto</string>
+    <string name="search_icons_or_apps_hint">Cerca icone o app</string>
+    <string name="search_names_or_packages_hint">Cerca nomi o pacchetti</string>
+    <string name="filter_all">Tutte</string>
+    <string name="filter_all_count">Tutte (%1$d)</string>
+    <string name="filter_needs_icon">Senza icona</string>
+    <string name="filter_needs_icon_count">Senza icona (%1$d)</string>
+    <string name="filter_customized">Personalizzate</string>
+    <string name="filter_customized_count">Personalizzate (%1$d)</string>
+    <string name="filter_unthemeable">Non personalizzabili da HONOR</string>
+    <string name="filter_unthemeable_count">Non personalizzabili da HONOR (%1$d)</string>
+    <string name="switch_original_icons">Icone originali</string>
+    <string name="summary_finding_apps">Ricerca delle app installate…</string>
+    <string name="summary_all_themed">Ogni app ha un\'icona del tema</string>
+    <string name="summary_all_themed_with_unthemeable">Ogni app ha un\'icona del tema · %1$d non personalizzabili</string>
+    <string name="summary_no_apps_match">Nessuna app trovata</string>
+    <string name="summary_unthemeable_detail">Build rinominate non personalizzabili da HONOR · tocca per dettagli</string>
+    <plurals name="summary_matches">
+        <item quantity="one">%1$d risultato · migliori in alto</item>
+        <item quantity="many">%1$d risultati · migliori in alto</item>
+        <item quantity="other">%1$d risultati · migliori in alto</item>
+    </plurals>
+    <string name="summary_themed_of_total">%1$d app su %2$d con tema</string>
+    <string name="summary_themed_of_total_with_unthemeable">%1$d app su %2$d con tema · %3$d non personalizzabili</string>
+
+    <!-- App status badges -->
+    <string name="status_customized">Personalizzata</string>
+    <string name="status_customized_unthemeable">Personalizzata · HONOR non può personalizzare questa build</string>
+    <string name="status_unthemeable">HONOR non può personalizzare questa build</string>
+    <string name="status_needs_icon">Senza icona</string>
+    <string name="status_needs_icon_original">Senza icona · usa originale</string>
+    <string name="status_needs_icon_unavailable">Senza icona · grafica non disponibile</string>
+    <string name="status_needs_icon_unreadable">Senza icona · immagine illeggibile</string>
+    <string name="status_themed_pack">Con tema · pacchetto</string>
+    <string name="status_themed_imported">Con tema · importata</string>
+    <string name="status_themed_imported_unavailable">Con tema · importata\nSostituzione non disponibile</string>
+    <string name="a11y_original_and_themed">icona originale e icona del tema</string>
+
+    <!-- Pack icons page -->
+    <string name="icon_summary_empty">Scegli un pacchetto per sfogliare le icone</string>
+    <string name="icon_summary_count">%1$d di %2$d icone · alternative incluse</string>
+
+    <!-- Theme page -->
+    <string name="section_details">Dettagli</string>
+    <string name="section_icons">Icone</string>
+    <string name="section_file">File</string>
+    <string name="field_theme_name">Nome del tema</string>
+    <string name="field_designer">Autore</string>
+    <string name="field_description">Descrizione</string>
+    <string name="field_theme_format">Formato tema</string>
+    <string name="format_hnt">HONOR (.hnt)</string>
+    <string name="format_hwt">Compatibilità (.hwt)</string>
+    <string name="switch_whole_pack">Intero pacchetto di icone</string>
+    <string name="note_whole_pack">Includi tutte le app supportate dal pacchetto, anche quelle non installate su questo telefono.</string>
+    <string name="switch_style_unmatched">Stile per app senza icona</string>
+    <string name="note_style_unmatched">Esporta maschera, sfondi e cornice del pacchetto così HONOR può adattare le app prive di icona dedicata.</string>
+    <string name="note_style_unmatched_unavailable">Questo pacchetto non definisce maschere o sfondi di fallback.</string>
+    <string name="switch_live_calendar">Icona calendario dinamica</string>
+    <string name="note_live_calendar">Esporta uno sfondo calendario dinamico HONOR e il colore della data per aggiornare il giorno automaticamente.</string>
+    <string name="note_live_calendar_unavailable">Questo pacchetto non definisce icone calendario dinamiche.</string>
+    <string name="action_apply_whole_pack">Applica l\'intero pacchetto al tema</string>
+    <string name="action_pack_applied_again">Pacchetto applicato · applica di nuovo</string>
+    <string name="switch_replace_icons">Sostituisci set di icone esistente</string>
+    <string name="note_replace_icons">Quando applichi un pacchetto, rimuovi le vecchie icone del tema invece di mantenere quelle non coperte dal pacchetto.</string>
+    <string name="note_file_spec">Icone PNG 192 px · salvato sempre come nuovo file</string>
+    <string name="switch_repair_compatibility">Ripara compatibilità tema</string>
+    <string name="note_repair_compatibility">Converti questo tema legacy minimale nel profilo sperimentale HONOR; icone e nome autore vengono mantenuti.</string>
+
+    <!-- Status messages -->
+    <string name="status_initial">Scegli un pacchetto o apri un tema per iniziare.</string>
+    <string name="status_loading_local">Lettura dei pacchetti di icone e delle app…</string>
+    <string name="status_working_theme_unavailable">Il tema di lavoro non è disponibile. Riapri il file .hnt originale.</string>
+    <string name="status_restore_theme_failed">Impossibile ripristinare il tema.</string>
+    <string name="status_restore_pack_failed">Impossibile ripristinare questo pacchetto.</string>
+    <string name="status_theme_opened_ready">Tema aperto. Modifica icone o metadati, poi salva una copia.</string>
+    <string name="status_pack_ready">Pacchetto pronto. Tocca un\'app per cambiarne l\'icona.</string>
+    <string name="status_choose_source">Scegli un pacchetto o apri un tema .hnt esistente.</string>
+    <string name="status_refreshing_packs">Aggiornamento pacchetti installati…</string>
+    <plurals name="status_packs_found">
+        <item quantity="one">%1$d pacchetto installato trovato.</item>
+        <item quantity="many">%1$d pacchetti installati trovati.</item>
+        <item quantity="other">%1$d pacchetti installati trovati.</item>
+    </plurals>
+    <string name="status_reading_pack">Lettura di %1$s…</string>
+    <string name="status_pack_loaded_new">%1$d icone pronte da sfogliare.</string>
+    <string name="status_pack_loaded_imported">Pacchetto caricato. Applicalo esplicitamente o scegli singole icone.</string>
+    <string name="status_pack_will_replace">%1$s sostituirà il set di icone statiche di questo tema.</string>
+    <string name="status_pack_will_merge">%1$s verrà unito al set di icone statiche di questo tema.</string>
+    <string name="status_icon_reset">Icona ripristinata per %1$s.</string>
+    <string name="status_using_original">Verrà usata l\'icona originale dell\'app.</string>
+    <string name="status_icon_selected">Icona selezionata per %1$s.</string>
+    <string name="status_opening_theme">Apertura e convalida del tema…</string>
+    <string name="status_theme_opened_copy">Tema aperto. Il file originale resta intatto; il salvataggio crea una nuova copia.</string>
+    <string name="status_new_theme">Nuovo tema di icone. Scegli un pacchetto, poi salva.</string>
+    <string name="status_preparing_theme">Preparazione del tema…</string>
+    <string name="status_rendering_icons">Elaborazione di %1$d / %2$d icone…</string>
+    <string name="status_export_choose_location">%1$s Scegli dove salvare il nuovo file.</string>
+    <string name="status_save_cancelled">Salvataggio annullato. Le tue modifiche sono ancora disponibili.</string>
+    <string name="status_working_export_unavailable">L\'esportazione temporanea non è disponibile. Salva di nuovo il tema.</string>
+    <string name="status_saving_file">Salvataggio del nuovo file tema…</string>
+    <string name="status_verified_save">%1$s Verificato %2$s (%3$d byte).</string>
+    <string name="status_saved_file_fallback">file salvato</string>
+    <string name="status_open_themes_fallback">Apri Temi dalla schermata Home.</string>
+    <string name="status_open_themes_info_fallback">Apri Impostazioni → App → Temi → Arresto forzato, poi riapri Temi.</string>
+    <string name="status_operation_failed">Operazione non riuscita. Riprova.</string>
+    <string name="status_no_missing_to_share">Ogni app ha già un\'icona del tema.</string>
+    <string name="status_share_unavailable">Nessuna app disponibile per condividere la richiesta di icone.</string>
+
+    <!-- Export report -->
+    <plurals name="report_icons_saved">
+        <item quantity="one">%1$d icona statica salvata</item>
+        <item quantity="many">%1$d icone statiche salvate</item>
+        <item quantity="other">%1$d icone statiche salvate</item>
+    </plurals>
+    <plurals name="report_missing_skipped">
+        <item quantity="one">%1$d risorsa mancante saltata</item>
+        <item quantity="many">%1$d risorse mancanti saltate</item>
+        <item quantity="other">%1$d risorse mancanti saltate</item>
+    </plurals>
+    <string name="report_fallback_included">maschera/stile del pacchetto inclusi</string>
+    <string name="report_fallback_skipped">maschera/stile del pacchetto non generabili</string>
+    <string name="report_live_calendar_included">calendario dinamico incluso</string>
+    <string name="report_live_calendar_existing_launcher">sfondo calendario dinamico incluso (colori launcher esistenti mantenuti)</string>
+    <string name="report_live_calendar_skipped">calendario dinamico non generabile</string>
+    <string name="error_enter_theme_name">Inserisci un nome per il tema</string>
+
+    <!-- Pickers & sheets -->
+    <string name="dialog_install_pack_title">Installa un pacchetto di icone</string>
+    <string name="dialog_install_pack_message">Installa un pacchetto di icone compatibile da Google Play, poi usa Aggiorna pacchetti. I pacchetti espongono il proprio appfilter.xml e il catalogo pubblico; nessun contenuto a pagamento viene scaricato o sbloccato.</string>
+    <string name="sheet_choose_pack_title">Scegli pacchetto di icone</string>
+    <string name="sheet_choose_pack_subtitle">Pacchetti installati su questo dispositivo</string>
+    <string name="sheet_icon_for_title">Icona per %1$s</string>
+    <string name="dialog_no_pack_for_app_message">Scegli un pacchetto di icone per cercare sostituzioni. Puoi anche rimuovere l\'icona personalizzata di questo tema e usare quella originale dell\'app.</string>
+    <string name="sheet_choose_app_title">Scegli un\'app</string>
+    <string name="sheet_choose_app_subtitle">Usa %1$s per…</string>
+    <string name="sheet_suggested_header">Icone suggerite</string>
+    <string name="sheet_suggested_count">Icone suggerite (%1$d) · tocca per scegliere</string>
+    <string name="sheet_suggested_none">Nessun suggerimento vicino · sfoglia tutte le icone sotto</string>
+    <string name="sheet_all_pack_icons">Tutte le icone del pacchetto</string>
+    <string name="sheet_all_pack_icons_count">Tutte le icone del pacchetto (%1$d)</string>
+    <string name="sheet_matching_icons_count">Icone corrispondenti (%1$d) · migliori in alto</string>
+
+    <!-- Dialogs -->
+    <string name="dialog_unthemeable_title">HONOR non può personalizzare %1$s</string>
+    <string name="dialog_unthemeable_message">Questa build è installata come %1$s, ma le sue risorse icona usano il nome %2$s. Il motore temi di HONOR applica un\'icona solo quando entrambi i nomi coincidono, quindi nessun tema può cambiarla. Una build il cui pacchetto corrisponde alle risorse (qui %2$s) può essere personalizzata.\n\nPuoi comunque scegliere un\'icona: verrà salvata nel tema, ma HONOR mostrerà quella originale dell\'app.</string>
+    <string name="dialog_theme_saved_title">Tema salvato</string>
+    <string name="dialog_theme_saved_body">%1$s\n\nSalvalo o copialo in Memoria interna / HONOR / Themes, poi apri Temi HONOR → Io → I miei download → Personalizza → Icone.\n\nSe il tema non appare, tocca Info app, scegli Arresto forzato, poi riapri Temi. Questo ha aggiornato l\'elenco sul Magic V5 testato.</string>
+    <string name="report_verified_details">%1$s\n\nFile: %2$s\n%3$d byte verificati\nSHA-256: %4$s</string>
+    <string name="report_name_unavailable">nome non disponibile</string>
+    <string name="warning_provider_no_filename">Il provider non ha restituito il nome del file. Verifica che termini con %1$s.</string>
+    <string name="warning_provider_bad_extension">Attenzione: il provider ha salvato un\'estensione inattesa. Rinomina %1$s in modo che termini con %2$s prima di aprire Temi HONOR.</string>
+    <string name="dialog_pack_details_body">%1$s\n\n%2$d icone in catalogo · %3$d app mappate\n%4$s\n\n%5$s\n\nIntero pacchetto esporta tutte le mappature note. Le icone alternative possono essere assegnate manualmente. Gli orologi dinamici vengono esportati come icone statiche.</string>
+    <string name="pack_details_no_warnings">Nessun avviso di lettura.</string>
+    <string name="pack_details_extras_both">Stile di fallback e calendario dinamico supportati.</string>
+    <string name="pack_details_extras_fallback">Maschera/sfondi di fallback supportati.</string>
+    <string name="pack_details_extras_calendar">Icona calendario dinamica supportata.</string>
+    <string name="pack_details_extras_none">Solo icone mappate statiche (nessuna maschera di fallback o calendario dinamico).</string>
+    <string name="dialog_imported_theme_title">Tema importato</string>
+    <string name="dialog_imported_theme_body">%1$s\n%2$d icone statiche di pacchetti\n\n%3$s</string>
+    <string name="imported_theme_default_note">Gli altri moduli del tema e le configurazioni sconosciute vengono preservati al salvataggio di una copia.</string>
+    <string name="dialog_guide_title">Come applicare il tema</string>
+    <string name="dialog_guide_message">1. Salva o copia il file esportato in Memoria interna / HONOR / Themes.\n\n2. Apri Temi HONOR → Io → I miei download. Se il tema non appare, tocca Info app, scegli Arresto forzato e poi riapri Temi.\n\n3. Scegli Personalizza → Icone e seleziona il tuo tema. Le voci di menu possono variare per regione.\n\nApplicazione e persistenza delle icone sono confermate sul Magic V5 / MagicOS 10.0.0.168 EU testato. Le nuove esportazioni usano il layout senza sfondo confermato.\n\nQuando un pacchetto include maschere/sfondi di fallback o calendari dinamici, Magic Themer può esportarli (controlla il risultato sul telefono e disattivali nella scheda Tema se preferisci).\n\nI temi ZIP ordinari importati vengono salvati come nuova copia. Puoi modificare le icone PNG statiche e titolo, autore e descrizione; gli altri moduli e le anteprime originali restano intatti.\n\nUsa Senza icona per trovare le app scoperte o condividere l\'elenco come richiesta icone per l\'autore del pacchetto.\n\nUsa le esportazioni solo per uso personale; la grafica resta di proprietà dei rispettivi autori.</string>
+    <string name="dialog_open_themes_manual_title">Apri Temi HONOR manualmente</string>
+    <string name="dialog_open_themes_manual_message">Apri l\'app Temi, oppure Impostazioni → Schermata Home e personalizzazione → Temi.</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Impostazioni</string>
+    <string name="settings_section_app_list">Elenco app</string>
+    <string name="settings_show_original">Mostra icone originali delle app</string>
+    <string name="settings_show_original_note">HONOR restituisce le icone del tema applicato. Attiva questa opzione per vedere invece l\'icona originale di ciascuna app.</string>
+    <string name="settings_section_new_themes">Nuovi temi</string>
+    <string name="settings_designer_credit">Nome autore</string>
+    <string name="settings_designer_note">Lascia vuoto per usare il nome di questo telefono: %1$s</string>
+    <string name="settings_section_about">Informazioni</string>
+    <string name="settings_about_text">Magic Themer %1$s\nSoftware libero e open source con licenza GNU GPL v3. Nessuna pubblicità, account, analisi o accesso alla rete.</string>
+
+    <!-- Share icon request -->
+    <string name="share_request_chooser">Condividi richiesta icone</string>
+    <string name="share_request_subject">Richiesta icone per %1$s</string>
+    <string name="share_request_subject_generic">Richiesta icone</string>
+
+    <!-- Suggestion reasons & categories -->
+    <string name="reason_launcher_activity">Corrisponde all\'attività di avvio</string>
+    <string name="reason_mapped_to_app">Mappata per questa app</string>
+    <string name="reason_app_name">Corrisponde al nome dell\'app</string>
+    <string name="reason_app_name_words">Condivide parole del nome</string>
+    <string name="reason_known_app_name">Nome app conosciuto</string>
+    <string name="reason_package_name">Corrisponde al nome pacchetto</string>
+    <string name="reason_category_icon">Icona %1$s</string>
+    <string name="reason_similar_category_app">App simile (%1$s)</string>
+
+    <string name="category_music">Musica</string>
+    <string name="category_video">Video</string>
+    <string name="category_games">Giochi</string>
+    <string name="category_transport">Trasporti</string>
+    <string name="category_maps">Mappe</string>
+    <string name="category_photo">Foto e fotocamera</string>
+    <string name="category_chat">Chat e social</string>
+    <string name="category_browser">Browser</string>
+    <string name="category_mail">Posta</string>
+    <string name="category_money">Banca e finanza</string>
+    <string name="category_shopping">Shopping</string>
+    <string name="category_food">Cibo e consegne</string>
+    <string name="category_news">Notizie e lettura</string>
+    <string name="category_notes">Note e produttività</string>
+    <string name="category_files">File e archiviazione</string>
+    <string name="category_health">Salute e fitness</string>
+    <string name="category_weather">Meteo</string>
+    <string name="category_travel">Viaggi</string>
+    <string name="category_tools">Strumenti e impostazioni</string>
+</resources>

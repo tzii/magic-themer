@@ -138,6 +138,50 @@ class ThemeEditorTest {
         ThemeEditor.close(document)
     }
 
+    @Test fun appliesFallbackStyleAndLiveCalendarWhenEditingWithoutTouchingExistingLauncher() {
+        val document = ThemeEditor.open(theme())
+        val maskPng = png + byteArrayOf(9)
+        val calBg = png + byteArrayOf(8)
+        val output = ByteArrayOutputStream().also {
+            ThemeEditor.write(
+                document, it, document.title, document.designer, document.briefInfo, emptyMap(),
+                fallbackStyle = ThemeFallbackStyle(maskPng = maskPng, borderPng = png, backgroundPngs = listOf(png)),
+                dynamicCalendar = ThemeDynamicCalendar(calBg, "#abcdef"),
+            )
+        }.toByteArray()
+        val outer = unzip(output)
+        assertTrue(outer.containsKey("com.hihonor.android.launcher"))
+        val inner = unzip(outer.getValue("icons"))
+        assertArrayEquals(maskPng, inner["icon_mask.png"])
+        assertArrayEquals(png, inner["icon_border.png"])
+        assertArrayEquals(png, inner["icon_background_0.png"])
+        assertArrayEquals(calBg, inner["dynamic_icons/com.android.calendar/calendar_background.png"])
+        ThemeEditor.close(document)
+
+        // If the imported theme already ships its own launcher module, keep it untouched.
+        val existingLauncher = archive(mapOf("night/theme.xml" to "<resources/>".toByteArray()))
+        val withLauncher = ThemeEditor.open(theme(extras = unrelated + ("com.hihonor.android.launcher" to existingLauncher)))
+        assertTrue(withLauncher.hasLauncherModule)
+        val edited = ByteArrayOutputStream().also {
+            ThemeEditor.write(withLauncher, it, withLauncher.title, withLauncher.designer, withLauncher.briefInfo, emptyMap(),
+                dynamicCalendar = ThemeDynamicCalendar(calBg, "#abcdef"))
+        }.toByteArray()
+        assertArrayEquals(existingLauncher, unzip(edited).getValue("com.hihonor.android.launcher"))
+        ThemeEditor.close(withLauncher)
+
+        // Stale icon_background_*.png entries are removed when replacing backgrounds.
+        val withOldBgs = ThemeEditor.open(theme(iconEntries = assets + mapOf("icon_background_0.png" to png, "icon_background_1.png" to png)))
+        val replacedBgs = ByteArrayOutputStream().also {
+            ThemeEditor.write(withOldBgs, it, withOldBgs.title, withOldBgs.designer, withOldBgs.briefInfo, emptyMap(),
+                fallbackStyle = ThemeFallbackStyle(backgroundPngs = listOf(replacementPng)))
+        }.toByteArray()
+        val replacedInner = unzip(unzip(replacedBgs).getValue("icons"))
+        assertArrayEquals(replacementPng, replacedInner["icon_background_0.png"])
+        assertFalse(replacedInner.containsKey("icon_background_1.png"))
+        assertFalse(replacedInner.containsKey("icon_mask.png"))
+        ThemeEditor.close(withOldBgs)
+    }
+
     @Test fun replacesAllAliasesAndWarnsAboutAmbiguousPackagePaths() {
         val aliases = LinkedHashMap(assets).apply { put("res/other/com.example.first.png", png) }
         val document = ThemeEditor.open(theme(iconEntries = aliases))

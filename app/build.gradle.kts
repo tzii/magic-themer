@@ -11,14 +11,14 @@ val keystoreProperties = Properties().apply {
 
 android {
     namespace = "dev.magicthemer"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.tzii.magicthemer"
         minSdk = 26
-        targetSdk = 36
-        versionCode = 8
-        versionName = "0.7.1"
+        targetSdk = 37
+        versionCode = 9
+        versionName = "0.8.0"
     }
 
     signingConfigs {
@@ -53,7 +53,7 @@ android {
 }
 
 dependencies {
-    implementation("com.google.android.material:material:1.13.0")
+    implementation("com.google.android.material:material:1.14.0")
     implementation("androidx.recyclerview:recyclerview:1.4.0")
     testImplementation("junit:junit:4.13.2")
 }
