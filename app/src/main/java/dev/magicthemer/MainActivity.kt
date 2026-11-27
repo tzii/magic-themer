@@ -1240,8 +1240,10 @@ class MainActivity : AppCompatActivity() {
         setBusy(true, getString(R.string.status_preparing_theme))
         background {
             val candidates = exportCandidates(base, assignments, exportApps, exportPacks, includeAll, source != null, removed)
+                .sortedBy { it.mapping.packageName }
             require(source != null || candidates.isNotEmpty()) { "No app icons selected. Assign icons manually or select a pack with app mappings." }
-            val replacements = linkedMapOf<String, ByteArray>()
+            val replacements = if (source != null) linkedMapOf<String, ByteArray>() else null
+            val streamedIcons = if (source == null) ThemeArchive.StreamingIcons(themeWorkDir) else null
             val previewIcons = ArrayList<Bitmap>()
             var missing = 0; var bytes = 0L
             val output = File.createTempFile("export-", ".$format", themeWorkDir)
@@ -1252,17 +1254,20 @@ class MainActivity : AppCompatActivity() {
                     if (bitmap == null) missing++ else try {
                         val png = encodePng(bitmap)
                         require(png.size <= ThemeArchive.MAX_ICON_BYTES) { "An icon exceeds 256 KiB." }
-                        bytes += png.size; require(bytes <= ThemeArchive.MAX_TOTAL_ICON_BYTES) { "Rendered icons exceed 64 MiB. Turn Whole icon pack off." }
-                        replacements[candidate.mapping.packageName] = png
+                        bytes += png.size; require(bytes <= ThemeArchive.MAX_TOTAL_ICON_BYTES) { "Rendered icons exceed 120 MiB. Turn Whole icon pack off." }
+                        if (streamedIcons != null) streamedIcons.addIcon(candidate.mapping.packageName, png)
+                        else replacements!![candidate.mapping.packageName] = png
                         if ((source == null || repair) && previewIcons.size < 12) previewIcons += Bitmap.createScaledBitmap(bitmap, 80, 80, true)
                     } finally { bitmap.recycle() }
                     if (index % 20 == 0) ui { status.text = getString(R.string.status_rendering_icons, index + 1, candidates.size) }
                 }
-                if (candidates.isNotEmpty() && (source == null || replaceAll)) require(replacements.isNotEmpty()) { "None of the selected icons could be read. Try another icon pack." }
+                val writtenIcons = streamedIcons?.count ?: replacements!!.size
+                if (candidates.isNotEmpty() && (source == null || replaceAll)) require(writtenIcons > 0) { "None of the selected icons could be read. Try another icon pack." }
+                ui { status.setText(R.string.status_packaging_theme) }
                 val fallbackStyle = if (includeStyle) buildFallbackStyle(base) else null
                 val dynamicCalendar = if (includeLiveCalendar) buildDynamicCalendar(base, exportApps.mapTo(hashSetOf()) { it.packageName }, removed, assignments) else null
                 if (source != null && !replaceAll && repair && previewIcons.size < 12) {
-                    source.iconEntries.keys.filter { it !in replacements && it !in removed }.take(12 - previewIcons.size).forEach { pkg ->
+                    source.iconEntries.keys.filter { it !in replacements!! && it !in removed }.take(12 - previewIcons.size).forEach { pkg ->
                         ThemeEditor.readIcon(source, pkg)?.let { png -> decodeThemePng(png, 80)?.let(previewIcons::add) }
                     }
                 }
@@ -1270,14 +1275,14 @@ class MainActivity : AppCompatActivity() {
                 val preview = if (source == null || repair) createPreview(title, previewIcons, 720, 1280) else null
                 val iconsPreview = if (source == null || repair) createPreview(title, previewIcons, 720, 1280) else null
                 output.outputStream().use { stream ->
-                    if (source == null) ThemeArchive.write(
-                        stream, title, sourceLabel, replacements.map { ThemeIcon(it.key, it.value) }, format,
+                    if (source == null) ThemeArchive.writeStreamed(
+                        stream, title, sourceLabel, streamedIcons!!, format,
                         preview = preview, iconsPreview = iconsPreview, tempDirectory = themeWorkDir, designer = designer, briefInfo = brief,
                         fallbackStyle = fallbackStyle, dynamicCalendar = dynamicCalendar,
-                    ) else ThemeEditor.write(source, stream, title, designer, brief, replacements, removed, replaceAll, preview, iconsPreview,
+                    ) else ThemeEditor.write(source, stream, title, designer, brief, replacements!!, removed, replaceAll, preview, iconsPreview,
                         upgradeMinimalProfile = repair, fallbackStyle = fallbackStyle, dynamicCalendar = dynamicCalendar)
                 }
-                val count = if (source == null || replaceAll) replacements.size else (source.iconEntries.keys - removed + replacements.keys).size
+                val count = if (source == null || replaceAll) writtenIcons else (source.iconEntries.keys - removed + replacements!!.keys).size
                 val calendarSuppressedByUser = setOf("com.hihonor.calendar", "com.android.calendar", "com.huawei.calendar").any { it in removed || it in assignments }
                 val reportParts = buildList {
                     add(resources.getQuantityString(R.plurals.report_icons_saved, count, count))
@@ -1306,7 +1311,7 @@ class MainActivity : AppCompatActivity() {
                     startActivityForResult(intent, SAVE_THEME)
                 }
             } catch (failure: Exception) { output.delete(); throw failure }
-            finally { previewIcons.forEach { it.recycle() } }
+            finally { streamedIcons?.close(); previewIcons.forEach { it.recycle() } }
         }
     }
 
@@ -1725,6 +1730,8 @@ class MainActivity : AppCompatActivity() {
         worker.execute {
             try { block() } catch (failure: Exception) {
                 if (failure !is InterruptedException) ui { setBusy(false, failure.message ?: getString(R.string.status_operation_failed)) }
+            } catch (_: OutOfMemoryError) {
+                ui { setBusy(false, "Out of memory while exporting. Turn Whole icon pack off.") }
             }
         }
     }

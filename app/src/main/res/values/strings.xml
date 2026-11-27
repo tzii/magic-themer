@@ -138,6 +138,7 @@
     <string name="status_new_theme">New icon theme. Choose a pack, then save.</string>
     <string name="status_preparing_theme">Preparing theme…</string>
     <string name="status_rendering_icons">Rendering %1$d / %2$d app icons…</string>
+    <string name="status_packaging_theme">Packaging theme archive…</string>
     <string name="status_export_choose_location">%1$s Choose where to save the new file.</string>
     <string name="status_save_cancelled">Save cancelled. Your edits are still available.</string>
     <string name="status_working_export_unavailable">The working export is unavailable. Save your theme again.</string>

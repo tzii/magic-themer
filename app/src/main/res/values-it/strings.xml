@@ -140,6 +140,7 @@
     <string name="status_new_theme">Nuovo tema di icone. Scegli un pacchetto, poi salva.</string>
     <string name="status_preparing_theme">Preparazione del tema…</string>
     <string name="status_rendering_icons">Elaborazione di %1$d / %2$d icone…</string>
+    <string name="status_packaging_theme">Creazione archivio del tema…</string>
     <string name="status_export_choose_location">%1$s Scegli dove salvare il nuovo file.</string>
     <string name="status_save_cancelled">Salvataggio annullato. Le tue modifiche sono ancora disponibili.</string>
     <string name="status_working_export_unavailable">L\'esportazione temporanea non è disponibile. Salva di nuovo il tema.</string>

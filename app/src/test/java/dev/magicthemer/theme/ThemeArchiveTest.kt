@@ -175,7 +175,8 @@ class ThemeArchiveTest {
         rejects { export(preview = png) }
         rejects { export(preview = ByteArray(ThemeArchive.MAX_PREVIEW_BYTES + 1)) }
         val fullSizedPng = ByteArray(ThemeArchive.MAX_ICON_BYTES).also { png.copyInto(it) }
-        rejects { export(icons = List(257) { ThemeIcon("com.example.app$it", fullSizedPng) }) }
+        val overBudgetCount = (ThemeArchive.MAX_TOTAL_ICON_BYTES / ThemeArchive.MAX_ICON_BYTES + 1).toInt()
+        rejects { export(icons = List(overBudgetCount) { ThemeIcon("com.example.app$it", fullSizedPng) }) }
     }
 
     @Test fun rejectedInputLeavesOutputUntouched() {
@@ -272,6 +273,35 @@ class ThemeArchiveTest {
             ThemeArchive.write(ByteArrayOutputStream(), "Bad", "Pack", listOf(ThemeIcon("com.example.app", png)), "hnt",
                 fallbackStyle = ThemeFallbackStyle(backgroundPngs = List(17) { png }))
         }
+    }
+
+    @Test fun streamedExportMatchesBufferedExportByteForByte() {
+        val cache = folder.newFolder("stream-cache")
+        val maskPng = png + byteArrayOf(1)
+        val calBg = png + byteArrayOf(2)
+        val fallback = ThemeFallbackStyle(maskPng = maskPng)
+        val calendar = ThemeDynamicCalendar(calBg, "#123456")
+        val buffered = ByteArrayOutputStream().also { out ->
+            ThemeArchive.write(
+                out, "Streamed", "Pack",
+                listOf(ThemeIcon("com.example.alpha", png), ThemeIcon("org.example.zed", png)),
+                "hnt", tempDirectory = cache, modifiedMillis = null,
+                fallbackStyle = fallback, dynamicCalendar = calendar,
+            )
+        }.toByteArray()
+        val streamed = ByteArrayOutputStream().also { out ->
+            ThemeArchive.StreamingIcons(cache, modifiedMillis = null).use { icons ->
+                icons.addIcon("com.example.alpha", png)
+                icons.addIcon("org.example.zed", png)
+                ThemeArchive.writeStreamed(
+                    out, "Streamed", "Pack", icons,
+                    "hnt", tempDirectory = cache, modifiedMillis = null,
+                    fallbackStyle = fallback, dynamicCalendar = calendar,
+                )
+            }
+        }.toByteArray()
+        assertArrayEquals(buffered, streamed)
+        assertTrue(cache.listFiles().orEmpty().isEmpty())
     }
 
     private fun export(

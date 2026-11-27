@@ -1,6 +1,7 @@
 package dev.magicthemer.theme
 
 import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.OutputStream
 import java.io.RandomAccessFile
@@ -27,9 +28,38 @@ internal object ThemeZip {
     private const val END = 0x06054b50L
     private const val DESCRIPTOR = 0x08074b50L
     private const val DOS_EPOCH = 33L shl 16
+    private const val IN_MEMORY_STAGE_LIMIT = 512 * 1024
     private data class Entry(val name: String, val central: ByteArray, val local: ByteArray, val offset: Long, var end: Long = 0)
     private data class Archive(val entries: List<Entry>, val comment: ByteArray)
-    private data class Payload(val file: File, val size: Long, val crc: Long)
+    private data class Payload(val file: File?, val bytes: ByteArray?, val size: Long, val crc: Long) {
+        val compressedSize: Long get() = bytes?.size?.toLong() ?: file!!.length()
+    }
+
+    /** Streams ZIP entries sequentially to disk without holding all payloads in memory. */
+    class Writer(output: OutputStream, private val tempDirectory: File? = null, modifiedMillis: Long? = null) : AutoCloseable {
+        private val dosTime = modifiedMillis?.let(::dosDateTime) ?: DOS_EPOCH
+        private val sink = BoundedOutput(output)
+        private val central = ArrayList<ByteArray>()
+        private val staged = ArrayList<File>()
+        private var finished = false
+
+        fun put(name: String, content: Content) {
+            require(!finished) { "ZIP writer is already finished." }
+            require(central.size < MAX_ENTRIES) { "Too many ZIP members." }
+            val offset = sink.count
+            central += changed(freshEntry(name, dosTime), content, tempDirectory, sink, staged).also { put32(it, 42, offset) }
+        }
+
+        fun finishArchive() {
+            if (finished) return
+            finished = true
+            finish(sink, central, byteArrayOf())
+        }
+
+        override fun close() {
+            try { if (!finished) finishArchive() } finally { staged.forEach { it.delete() } }
+        }
+    }
 
     fun rewrite(source: File, output: OutputStream, replacements: Map<String, Content>, removed: Set<String> = emptySet(),
         normalizeDescriptors: Boolean = false) {
@@ -194,13 +224,15 @@ internal object ThemeZip {
         try {
             require(!entry.name.endsWith('/') || payload.size == 0L) { "ZIP directory must be empty." }
             val local = entry.local.copyOf()
-            put16(local, 6, flags); put32(local, 14, payload.crc); put32(local, 18, payload.file.length()); put32(local, 22, payload.size)
+            val packedSize = payload.compressedSize
+            put16(local, 6, flags); put32(local, 14, payload.crc); put32(local, 18, packedSize); put32(local, 22, payload.size)
             output.write(local)
-            payload.file.inputStream().use { it.copyTo(output, 32 * 1024) }
+            if (payload.bytes != null) output.write(payload.bytes)
+            else payload.file!!.inputStream().use { it.copyTo(output, 32 * 1024) }
             return entry.central.copyOf().also {
-                put16(it, 8, flags); put32(it, 16, payload.crc); put32(it, 20, payload.file.length()); put32(it, 24, payload.size)
+                put16(it, 8, flags); put32(it, 16, payload.crc); put32(it, 20, packedSize); put32(it, 24, payload.size)
             }
-        } finally { payload.file.delete(); staged.remove(payload.file) }
+        } finally { payload.file?.let { it.delete(); staged.remove(it) } }
     }
 
     /** Explicit repair changes framing only; the original deflate bytes survive. */
@@ -217,7 +249,6 @@ internal object ThemeZip {
     private fun stage(content: Content, method: Int, level: Int, directory: File?, staged: MutableList<File>): Payload {
         val expected = when (content) { is Bytes -> content.bytes.size.toLong(); is FileContent -> content.file.length().also { require(content.file.isFile) { "ZIP input file is unavailable." } } }
         require(expected in 0..MAX_MEMBER) { "ZIP member exceeds 128 MiB." }
-        val file = File.createTempFile("theme-zip-payload-", ".tmp", directory).also(staged::add)
         val crc = CRC32(); var size = 0L
         fun copyTo(sink: OutputStream) {
             val input = when (content) { is Bytes -> ByteArrayInputStream(content.bytes); is FileContent -> content.file.inputStream() }
@@ -230,12 +261,22 @@ internal object ThemeZip {
                 }
             }
         }
+        if (content is Bytes && content.bytes.size <= IN_MEMORY_STAGE_LIMIT) {
+            val buffer = ByteArrayOutputStream(maxOf(content.bytes.size, 64))
+            val deflater = Deflater(level, true)
+            try {
+                if (method == 0) copyTo(buffer) else DeflaterOutputStream(buffer, deflater, 32 * 1024).use { copyTo(it) }
+            } finally { deflater.end() }
+            require(size == expected) { "ZIP input changed while reading." }
+            return Payload(null, buffer.toByteArray(), size, crc.value)
+        }
+        val file = File.createTempFile("theme-zip-payload-", ".tmp", directory).also(staged::add)
         val deflater = Deflater(level, true)
         try { file.outputStream().use { sink ->
             if (method == 0) copyTo(sink) else DeflaterOutputStream(sink, deflater, 32 * 1024).use { copyTo(it) }
         } } finally { deflater.end() }
         require(size == expected) { "ZIP input changed while reading." }
-        return Payload(file, size, crc.value)
+        return Payload(file, null, size, crc.value)
     }
 
     private fun finish(output: BoundedOutput, records: List<ByteArray>, comment: ByteArray) {

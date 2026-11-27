@@ -25,7 +25,7 @@ object ThemeArchive {
     const val SCHEMA_VERSION = "12"
     const val MAX_ICON_COUNT = 20_000
     const val MAX_ICON_BYTES = 256 * 1024
-    const val MAX_TOTAL_ICON_BYTES = 64L * 1024 * 1024
+    const val MAX_TOTAL_ICON_BYTES = 120L * 1024 * 1024
     const val MAX_PREVIEW_BYTES = 4 * 1024 * 1024
 
     private val packagePattern = Regex("[A-Za-z_][A-Za-z0-9_]*(\\.[A-Za-z_][A-Za-z0-9_]*)+")
@@ -64,7 +64,7 @@ object ThemeArchive {
             require(bytes.size in pngSignature.size..MAX_ICON_BYTES) { "Icon exceeds the supported PNG size." }
             require(pngSignature.indices.all { bytes[it] == pngSignature[it] }) { "Icon is not a PNG." }
             totalBytes += bytes.size
-            require(totalBytes <= MAX_TOTAL_ICON_BYTES) { "Icon data exceeds 64 MiB." }
+            require(totalBytes <= MAX_TOTAL_ICON_BYTES) { "Icon data exceeds 120 MiB." }
         }
         icons.forEach { icon ->
             require(icon.packageName.length <= 255 && packagePattern.matches(icon.packageName)) {
@@ -166,6 +166,162 @@ ${resolvedBriefInfo?.let { "    <briefInfo>${xmlEscape(it)}</briefInfo>\n" }.orE
             output.use { ThemeZip.create(it, members, tempDirectory, modifiedMillis) }
         } finally {
             nestedIcons.delete()
+            nestedLauncher?.delete()
+        }
+    }
+
+    /**
+     * Streams icons one by one into the nested `icons` ZIP on disk so large
+     * whole-pack exports (8,000+ icons) never keep all rendered PNGs in RAM.
+     */
+    class StreamingIcons(
+        private val tempDirectory: File?,
+        private val modifiedMillis: Long? = System.currentTimeMillis(),
+    ) : AutoCloseable {
+        internal val file: File = File.createTempFile("theme-export-icons-", ".zip", tempDirectory)
+        private val output = file.outputStream()
+        private val zip = ThemeZip.Writer(output, tempDirectory, modifiedMillis)
+        private val seen = HashSet<String>()
+        var count: Int = 0
+            private set
+        var totalBytes: Long = 0L
+            private set
+        private var finished = false
+        private var closed = false
+
+        fun addIcon(packageName: String, png: ByteArray) {
+            require(!finished && !closed) { "Icon stream is already closed." }
+            require(count < MAX_ICON_COUNT) { "Choose between 1 and $MAX_ICON_COUNT icons." }
+            require(packageName.length <= 255 && packagePattern.matches(packageName)) {
+                "Invalid Android package name: ${packageName.take(80)}"
+            }
+            require(seen.add(packageName)) { "Duplicate icon package: $packageName" }
+            checkPng(png)
+            zip.put("$packageName.png", ThemeZip.Bytes(png))
+            count++
+        }
+
+        internal fun finishWithExtras(fallbackStyle: ThemeFallbackStyle?, dynamicCalendar: ThemeDynamicCalendar?) {
+            if (finished) return
+            require(count in 1..MAX_ICON_COUNT) { "Choose between 1 and $MAX_ICON_COUNT icons." }
+            val activeFallback = fallbackStyle?.takeUnless { it.isEmpty }
+            val extraInnerCount = (activeFallback?.let { (if (it.maskPng != null) 1 else 0) + (if (it.borderPng != null) 1 else 0) + it.backgroundPngs.size } ?: 0) +
+                (if (dynamicCalendar != null) 3 else 0)
+            require(count + extraInnerCount <= MAX_ICON_COUNT) { "Total icon module entries exceed $MAX_ICON_COUNT." }
+            val folder = ThemeZip.Bytes(ByteArray(0))
+            activeFallback?.let { style ->
+                require(style.backgroundPngs.size <= ThemeDynamicAssets.MAX_BACKGROUNDS) { "Too many fallback background icons." }
+                style.maskPng?.let { checkPng(it); zip.put("icon_mask.png", ThemeZip.Bytes(it)) }
+                style.borderPng?.let { checkPng(it); zip.put("icon_border.png", ThemeZip.Bytes(it)) }
+                style.backgroundPngs.forEachIndexed { index, png ->
+                    checkPng(png)
+                    zip.put("icon_background_$index.png", ThemeZip.Bytes(png))
+                }
+            }
+            dynamicCalendar?.let { calendar ->
+                checkPng(calendar.backgroundPng)
+                require(ThemeDynamicAssets.isValidHexColor(calendar.dateColorHex)) { "Invalid dynamic calendar date color." }
+                zip.put("dynamic_icons/", folder)
+                zip.put("dynamic_icons/com.android.calendar/", folder)
+                zip.put("dynamic_icons/com.android.calendar/calendar_background.png", ThemeZip.Bytes(calendar.backgroundPng))
+            }
+            finished = true
+            zip.close()
+            output.close()
+        }
+
+        private fun checkPng(bytes: ByteArray) {
+            require(bytes.size in pngSignature.size..MAX_ICON_BYTES) { "Icon exceeds the supported PNG size." }
+            require(pngSignature.indices.all { bytes[it] == pngSignature[it] }) { "Icon is not a PNG." }
+            totalBytes += bytes.size
+            require(totalBytes <= MAX_TOTAL_ICON_BYTES) { "Rendered icons exceed 120 MiB. Turn Whole icon pack off." }
+        }
+
+        override fun close() {
+            if (closed) return
+            closed = true
+            runCatching { if (!finished) zip.close() }
+            runCatching { output.close() }
+            file.delete()
+        }
+    }
+
+    /** Finalizes a streamed icon archive into the outer theme ZIP and closes [output]. */
+    fun writeStreamed(
+        output: OutputStream,
+        title: String,
+        sourceLabel: String,
+        streamedIcons: StreamingIcons,
+        extension: String,
+        preview: ByteArray? = null,
+        iconsPreview: ByteArray? = null,
+        tempDirectory: File? = null,
+        designer: String = "Magic Themer",
+        briefInfo: String? = null,
+        wallpaper: ByteArray? = null,
+        modifiedMillis: Long? = System.currentTimeMillis(),
+        fallbackStyle: ThemeFallbackStyle? = null,
+        dynamicCalendar: ThemeDynamicCalendar? = null,
+    ) {
+        require(extension == "hnt" || extension == "hwt") { "Choose the hnt or hwt theme format." }
+        require(title.isNotBlank() && title.length <= 64) { "Theme title must contain 1–64 characters." }
+        require(sourceLabel.isNotBlank() && sourceLabel.length <= 256) { "Icon pack label must contain 1–256 characters." }
+        require(isXmlText(title) && isXmlText(sourceLabel)) { "Theme metadata contains invalid XML characters." }
+        val resolvedBriefInfo = (briefInfo ?: "Icons converted locally from $sourceLabel.").takeIf { it.isNotBlank() }
+        require(designer.length <= 128 && isXmlText(designer)) { "Designer must contain up to 128 valid XML characters." }
+        require(resolvedBriefInfo == null || resolvedBriefInfo.length <= 4096 && isXmlText(resolvedBriefInfo)) { "Description must contain up to 4096 valid XML characters." }
+        listOfNotNull(preview, iconsPreview, wallpaper).forEach {
+            require(it.size in 3..MAX_PREVIEW_BYTES) { "Preview exceeds the supported JPEG size." }
+            require(it[0] == 0xff.toByte() && it[1] == 0xd8.toByte() && it[2] == 0xff.toByte()) { "Preview is not a JPEG." }
+        }
+
+        val description = """<?xml version="1.0" encoding="UTF-8"?>
+<HwTheme>
+    <title>${xmlEscape(title)}</title>
+    <title-cn>${xmlEscape(title)}</title-cn>
+    <author>${xmlEscape(designer)}</author>
+    <designer>${xmlEscape(designer)}</designer>
+    <version>$SCHEMA_VERSION</version>
+    <font>Default</font>
+    <font-cn>Default</font-cn>
+${resolvedBriefInfo?.let { "    <briefInfo>${xmlEscape(it)}</briefInfo>\n" }.orEmpty()}</HwTheme>
+""".toByteArray(StandardCharsets.UTF_8)
+
+        streamedIcons.finishWithExtras(fallbackStyle, dynamicCalendar)
+        val nestedLauncher = if (dynamicCalendar != null) File.createTempFile("theme-export-launcher-", ".zip", tempDirectory) else null
+        try {
+            val folder = ThemeZip.Bytes(ByteArray(0))
+            nestedLauncher?.let { launcherFile ->
+                val themeXml = ThemeDynamicAssets.launcherThemeXml(dynamicCalendar!!.dateColorHex)
+                launcherFile.outputStream().use { stream ->
+                    ThemeZip.create(stream, linkedMapOf(
+                        "theme.xml" to ThemeZip.Bytes(themeXml),
+                        "night/" to folder,
+                        "night/theme.xml" to ThemeZip.Bytes(themeXml),
+                    ), tempDirectory, modifiedMillis)
+                }
+            }
+            val unlockPreview = iconsPreview ?: preview
+            val extraOuterBytes = (2L * (wallpaper?.size ?: 0)) + (nestedLauncher?.length() ?: 0L)
+            validateCompletedArchive(streamedIcons.file.length(), streamedIcons.totalBytes, description.size, preview?.size ?: 0,
+                iconsPreview?.size ?: 0, unlockPreview?.size ?: 0, extraOuterBytes)
+            val members = linkedMapOf<String, ThemeZip.Content>()
+            iconsPreview?.let { members["preview/preview_icons_0.jpg"] = ThemeZip.Bytes(it) }
+            unlockPreview?.let { members["preview/preview_unlock_0.jpg"] = ThemeZip.Bytes(it) }
+            preview?.let { members["preview/icon_small.jpg"] = ThemeZip.Bytes(it) }
+            if (members.isNotEmpty()) members["preview/"] = folder
+            members["unlock/theme.xml"] = ThemeZip.Bytes("<HWTheme />".toByteArray(StandardCharsets.UTF_8))
+            members["unlock/"] = folder
+            wallpaper?.let {
+                members["wallpaper/home_wallpaper_0.jpg"] = ThemeZip.Bytes(it)
+                members["wallpaper/unlock_wallpaper_0.jpg"] = ThemeZip.Bytes(it)
+                members["wallpaper/"] = folder
+            }
+            nestedLauncher?.let { members["com.hihonor.android.launcher"] = ThemeZip.FileContent(it) }
+            members["description.xml"] = ThemeZip.Bytes(description)
+            members["icons"] = ThemeZip.FileContent(streamedIcons.file)
+            output.use { ThemeZip.create(it, members, tempDirectory, modifiedMillis) }
+        } finally {
             nestedLauncher?.delete()
         }
     }
