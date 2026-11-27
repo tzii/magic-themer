@@ -129,7 +129,8 @@ def editor_checks(ui, out, fixture, original_hash, report):
 
     ui.tap(ui.find("Theme"))
     ui.tap(ui.reveal("Apply whole pack to theme"))
-    ui.edit(ui.await_text("QA Edited"), "QA Merged")
+    # 0.8 added switches above the button, so scroll back up to the title field.
+    ui.edit(ui.header_control("QA Edited"), "QA Merged")
     ui.tap(ui.find("Save theme copy"))
     ui.save_document()
     dismiss_saved(ui)
