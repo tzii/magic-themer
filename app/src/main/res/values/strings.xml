@@ -70,6 +70,7 @@
 
     <!-- App status badges -->
     <string name="status_customized">Customized</string>
+    <string name="status_customized_in_theme">Customized · in theme</string>
     <string name="status_customized_unthemeable">Customized · HONOR can\'t theme this build</string>
     <string name="status_unthemeable">HONOR can\'t theme this build</string>
     <string name="status_needs_icon">Needs icon</string>
@@ -205,6 +206,11 @@
     <string name="dialog_guide_message">1. Save or copy the exported file to internal storage / HONOR / Themes.\n\n2. Open HONOR Themes → Me → My downloads. If your theme is missing, tap App info, choose Force stop, then reopen Themes.\n\n3. Choose Customize → Icons and select your theme. Menu labels can vary by region.\n\nIcon application and persistence are confirmed on the tested Magic V5 / MagicOS 10.0.0.168 EU. New exports use the tested wallpaper-free layout. Themes may keep an old downloads list until it is force-stopped and reopened.\n\nWhen a pack includes fallback masks/backgrounds or dynamic calendars, Magic Themer can export them too (check how they look on your phone and toggle them in the Theme tab if needed).\n\nImported ordinary ZIP themes are saved as a new copy. Static package PNGs and title, designer, and description can be edited; other modules and authored previews are preserved. Selecting a pack does not alter an imported theme until you apply the pack or assign an icon.\n\nUse Needs icon to find apps without usable artwork, or share the list as an icon request for the pack\'s author.\n\nUse exports personally; artwork remains owned by its creator.</string>
     <string name="dialog_open_themes_manual_title">Open HONOR Themes manually</string>
     <string name="dialog_open_themes_manual_message">Open the Themes app, or Settings → Home screen &amp; personalization → Themes.</string>
+    <string name="dialog_same_title_title">Same theme name as original</string>
+    <string name="dialog_same_title_message">HONOR Themes can hide an edited copy if it keeps the same internal name (%1$s). Use a new name so the copy appears in My downloads?</string>
+    <string name="action_save_new_name">Save with new name</string>
+    <string name="action_keep_same_name">Keep same name</string>
+    <string name="action_cancel">Cancel</string>
 
     <!-- Settings -->
     <string name="settings_title">Settings</string>

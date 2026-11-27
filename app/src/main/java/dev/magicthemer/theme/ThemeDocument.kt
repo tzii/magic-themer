@@ -17,4 +17,7 @@ data class ThemeDocument internal constructor(
     internal val packageEntries: Map<String, List<String>>,
     internal val sourceDigest: ByteArray,
     internal val iconsDigest: ByteArray,
-)
+) {
+    val sourceSha256: String get() = ThemeExportHistory.hex(sourceDigest)
+    val iconsSha256: String get() = ThemeExportHistory.hex(iconsDigest)
+}

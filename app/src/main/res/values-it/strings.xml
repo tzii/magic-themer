@@ -71,6 +71,7 @@
 
     <!-- App status badges -->
     <string name="status_customized">Personalizzata</string>
+    <string name="status_customized_in_theme">Personalizzata · nel tema</string>
     <string name="status_customized_unthemeable">Personalizzata · HONOR non può personalizzare questa build</string>
     <string name="status_unthemeable">HONOR non può personalizzare questa build</string>
     <string name="status_needs_icon">Senza icona</string>
@@ -209,6 +210,11 @@
     <string name="dialog_guide_message">1. Salva o copia il file esportato in Memoria interna / HONOR / Themes.\n\n2. Apri Temi HONOR → Io → I miei download. Se il tema non appare, tocca Info app, scegli Arresto forzato e poi riapri Temi.\n\n3. Scegli Personalizza → Icone e seleziona il tuo tema. Le voci di menu possono variare per regione.\n\nApplicazione e persistenza delle icone sono confermate sul Magic V5 / MagicOS 10.0.0.168 EU testato. Le nuove esportazioni usano il layout senza sfondo confermato.\n\nQuando un pacchetto include maschere/sfondi di fallback o calendari dinamici, Magic Themer può esportarli (controlla il risultato sul telefono e disattivali nella scheda Tema se preferisci).\n\nI temi ZIP ordinari importati vengono salvati come nuova copia. Puoi modificare le icone PNG statiche e titolo, autore e descrizione; gli altri moduli e le anteprime originali restano intatti.\n\nUsa Senza icona per trovare le app scoperte o condividere l\'elenco come richiesta icone per l\'autore del pacchetto.\n\nUsa le esportazioni solo per uso personale; la grafica resta di proprietà dei rispettivi autori.</string>
     <string name="dialog_open_themes_manual_title">Apri Temi HONOR manualmente</string>
     <string name="dialog_open_themes_manual_message">Apri l\'app Temi, oppure Impostazioni → Schermata Home e personalizzazione → Temi.</string>
+    <string name="dialog_same_title_title">Stesso nome del tema originale</string>
+    <string name="dialog_same_title_message">Temi HONOR può nascondere una copia modificata se mantiene lo stesso nome interno (%1$s). Vuoi usare un nuovo nome così la copia appare in I miei download?</string>
+    <string name="action_save_new_name">Salva con nuovo nome</string>
+    <string name="action_keep_same_name">Mantieni nome</string>
+    <string name="action_cancel">Annulla</string>
 
     <!-- Settings -->
     <string name="settings_title">Impostazioni</string>

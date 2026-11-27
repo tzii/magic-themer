@@ -74,6 +74,8 @@ import dev.magicthemer.theme.ThemeDocument
 import dev.magicthemer.theme.ThemeDynamicAssets
 import dev.magicthemer.theme.ThemeDynamicCalendar
 import dev.magicthemer.theme.ThemeEditor
+import dev.magicthemer.theme.ThemeExportHistory
+import dev.magicthemer.theme.ThemeExportRecord
 import dev.magicthemer.theme.ThemeFallbackStyle
 import dev.magicthemer.theme.ThemeIcon
 import dev.magicthemer.ui.SearchQuery
@@ -108,6 +110,7 @@ class MainActivity : AppCompatActivity() {
     private val themeWorkDir by lazy { File(filesDir, "theme-work").apply {
         require(isDirectory || mkdirs()) { "Could not create theme working storage." }
     } }
+    private val exportHistory by lazy { ThemeExportHistory(File(filesDir, "export-history.tsv")) }
     private val loadedPacks = ConcurrentHashMap<String, PackData>()
     private val suggestionIndexes = ConcurrentHashMap<String, IconSuggestions>()
     private val iconSearchIndexes = ConcurrentHashMap<String, Map<String, List<SearchText>>>()
@@ -117,11 +120,15 @@ class MainActivity : AppCompatActivity() {
     private val thumbnails by lazy { ThumbnailLoader(::renderThumbnail) }
     private var packs = emptyList<IconPack>()
     private var apps = emptyList<ApplicationTarget>()
+    private var installedPackages = emptySet<String>()
+    private var selectedPackPackages = emptySet<String>()
     @Volatile private var document: ThemeDocument? = null
     @Volatile private var packData: PackData? = null
     private var appliedPack: PackData? = null
     private val choices = linkedMapOf<String, Choice>()
     private val removedPackages = linkedSetOf<String>()
+    private val importedCustomizations = linkedSetOf<String>()
+    private var importedHistoryMatched = false
     private var busy = false
     private var ready = false
     private var initialized = false
@@ -457,8 +464,14 @@ class MainActivity : AppCompatActivity() {
                     ?: found.firstOrNull { it.packageName == appliedPackage }?.let { runCatching { repository.load(it) }.getOrNull() }
             }
             applied?.let(::cachePack)
+            val restoredHistory = restored?.let { exportHistory.find(it.sourceSha256, it.iconsSha256) }
             ui(onDiscard = { restored?.let(ThemeEditor::close) }) {
-                packs = found; apps = installed; document = restored; packData = selected; appliedPack = applied
+                packs = found; apps = installed; installedPackages = installed.mapTo(hashSetOf()) { it.packageName }
+                document = restored; packData = selected; appliedPack = applied
+                selectedPackPackages = selected?.mappings?.mapTo(hashSetOf()) { it.packageName }.orEmpty()
+                importedCustomizations.clear()
+                importedHistoryMatched = restoredHistory != null
+                restoredHistory?.customizedPackages?.let(importedCustomizations::addAll)
                 pendingExport = restoredExport?.absolutePath
                 if (sourceName != null && restored != null && sourceName != restored.sourceFile.name) migrateSession(sourceName, restored.sourceFile.name)
                 initialized = true
@@ -549,7 +562,9 @@ class MainActivity : AppCompatActivity() {
                 loadedPacks.keys.removeIf { it !in refreshed }
                 suggestionIndexes.keys.removeIf { it !in refreshed }
                 iconSearchIndexes.keys.removeIf { it !in refreshed }
-                packs = found; apps = installed; packData = previous?.let(refreshed::get)
+                packs = found; apps = installed; installedPackages = installed.mapTo(hashSetOf()) { it.packageName }
+                packData = previous?.let(refreshed::get)
+                selectedPackPackages = packData?.mappings?.mapTo(hashSetOf()) { it.packageName }.orEmpty()
                 appliedPack = previousApplied?.let(refreshed::get)
                 choices.entries.removeAll { (_, choice) -> found.none { it.packageName == choice.pack } }
                 thumbnails.clear(); ++revision
@@ -581,6 +596,7 @@ class MainActivity : AppCompatActivity() {
             ui {
                 failedIcons.removeIf { it.startsWith("pack:${pack.packageName}:") }
                 packData = data
+                selectedPackPackages = data.mappings.mapTo(hashSetOf()) { it.packageName }
                 if (document == null) restoreSession()
                 fillDefaultCredits()
                 persist(); refreshUi()
@@ -675,9 +691,14 @@ class MainActivity : AppCompatActivity() {
         val source = document
         if (source != null && packageName in source.iconEntries && !(replaceIcons.isChecked && appliedPack != null)) {
             val key = "theme:${source.sourceFile.name}:$packageName"
-            return if (key !in failedIcons) AppIconState(key,
-                getString(if (replacementUnavailable) R.string.status_themed_imported_unavailable else R.string.status_themed_imported))
-            else AppIconState("app:$packageName", getString(R.string.status_needs_icon_unreadable), needsIcon = true)
+            if (key in failedIcons) return AppIconState("app:$packageName", getString(R.string.status_needs_icon_unreadable), needsIcon = true)
+            val previouslyCustomized = packageName in importedCustomizations ||
+                (!importedHistoryMatched && selectedPackPackages.isNotEmpty() && packageName in installedPackages && packageName !in selectedPackPackages)
+            return when {
+                replacementUnavailable -> AppIconState(key, getString(R.string.status_themed_imported_unavailable), customized = previouslyCustomized)
+                previouslyCustomized -> AppIconState(key, getString(R.string.status_customized_in_theme), customized = true)
+                else -> AppIconState(key, getString(R.string.status_themed_imported))
+            }
         }
         return null
     }
@@ -1066,11 +1087,15 @@ class MainActivity : AppCompatActivity() {
                 } }
                 val imported = ThemeEditor.open(copy)
                 opened = imported
+                val history = exportHistory.find(imported.sourceSha256, imported.iconsSha256)
                 val name = runCatching { contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor -> if (cursor.moveToFirst()) cursor.getString(0) else "" } }.getOrNull().orEmpty()
                 ui(onDiscard = { ThemeEditor.close(imported); copy.delete() }) {
                     saveSession()
                     val old = document
                     document = imported; appliedPack = null; choices.clear(); removedPackages.clear()
+                    importedCustomizations.clear()
+                    importedHistoryMatched = history != null
+                    history?.customizedPackages?.let(importedCustomizations::addAll)
                     ready = false
                     titleInput.setText(imported.title.ifBlank { DEFAULT_IMPORTED_TITLE }); designerInput.setText(imported.designer); briefInput.setText(imported.briefInfo)
                     replaceIcons.isChecked = false
@@ -1092,6 +1117,7 @@ class MainActivity : AppCompatActivity() {
     private fun newTheme() {
         val old = document
         document = null; appliedPack = null; choices.clear(); removedPackages.clear()
+        importedCustomizations.clear(); importedHistoryMatched = false
         old?.let { ThemeEditor.close(it); it.sourceFile.delete() }
         ready = false
         titleInput.setText(packTitle()); designerInput.setText(defaultDesigner()); briefInput.setText("")
@@ -1219,8 +1245,8 @@ class MainActivity : AppCompatActivity() {
         } finally { out.recycle() }
     }
 
-    private fun exportTheme() {
-        val title = titleInput.text.toString().trim()
+    private fun exportTheme(confirmedTitle: String? = null) {
+        val title = (confirmedTitle ?: titleInput.text.toString()).trim()
         if (title.isBlank()) { titleInput.error = getString(R.string.error_enter_theme_name); tabs.getTabAt(2)?.select(); return }
         val source = document
         val designer = designerInput.text.toString()
@@ -1233,6 +1259,20 @@ class MainActivity : AppCompatActivity() {
         val includeStyle = styleUnmatched.isChecked
         val includeLiveCalendar = liveCalendar.isChecked
         val assignments = choices.toMap()
+        val hasEdits = source != null && (
+            assignments.isNotEmpty() || removed.isNotEmpty() || appliedPack != null || repair ||
+                designer != source.designer || brief != source.briefInfo
+            )
+        if (confirmedTitle == null && source != null && hasEdits && title == source.title.trim()) {
+            confirmCopyTitle(title)
+            return
+        }
+        val priorCustomizations = when {
+            source == null || replaceAll -> emptySet()
+            importedHistoryMatched -> importedCustomizations.toSet()
+            selectedPackPackages.isNotEmpty() -> source.iconEntries.keys.filterTo(hashSetOf()) { it in installedPackages && it !in selectedPackPackages }
+            else -> emptySet()
+        }
         val exportApps = apps.toList()
         val exportPacks = packs.toList()
         val includeAll = wholePack.isChecked
@@ -1282,6 +1322,14 @@ class MainActivity : AppCompatActivity() {
                     ) else ThemeEditor.write(source, stream, title, designer, brief, replacements!!, removed, replaceAll, preview, iconsPreview,
                         upgradeMinimalProfile = repair, fallbackStyle = fallbackStyle, dynamicCalendar = dynamicCalendar)
                 }
+                val overwrittenByPack = if (source != null && base != null && !replaceAll) {
+                    ThemeMappingSelector.select(base.mappings, exportApps, includeAll).mapTo(hashSetOf()) { it.packageName }
+                } else emptySet()
+                val finalCustomized = (priorCustomizations - removed - overwrittenByPack) + assignments.keys
+                runCatching {
+                    val (archiveSha, iconsSha) = ThemeExportHistory.hashExport(output)
+                    exportHistory.record(ThemeExportRecord(archiveSha, iconsSha, title, base?.pack?.packageName, finalCustomized))
+                }
                 val count = if (source == null || replaceAll) writtenIcons else (source.iconEntries.keys - removed + replacements!!.keys).size
                 val calendarSuppressedByUser = setOf("com.hihonor.calendar", "com.android.calendar", "com.huawei.calendar").any { it in removed || it in assignments }
                 val reportParts = buildList {
@@ -1313,6 +1361,30 @@ class MainActivity : AppCompatActivity() {
             } catch (failure: Exception) { output.delete(); throw failure }
             finally { streamedIcons?.close(); previewIcons.forEach { it.recycle() } }
         }
+    }
+
+    private fun confirmCopyTitle(originalTitle: String) {
+        val suggested = ThemeExportHistory.suggestCopyTitle(originalTitle)
+        val panel = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(24), dp(8), dp(24), 0) }
+        panel.addView(label(getString(R.string.dialog_same_title_message, originalTitle), 14f, muted = true),
+            LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(12) })
+        val nameInput = editorField(panel, getString(R.string.field_theme_name), 64, false).apply {
+            setText(suggested)
+            setSelection(suggested.length)
+        }
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.dialog_same_title_title)
+            .setView(panel)
+            .setPositiveButton(R.string.action_save_new_name) { _, _ ->
+                val chosen = nameInput.text.toString().trim().ifBlank { suggested }
+                titleInput.setText(chosen)
+                exportTheme(confirmedTitle = chosen)
+            }
+            .setNeutralButton(R.string.action_keep_same_name) { _, _ ->
+                exportTheme(confirmedTitle = originalTitle)
+            }
+            .setNegativeButton(R.string.action_cancel, null)
+            .show()
     }
 
     private fun createPreview(title: String, icons: List<Bitmap>, width: Int, height: Int): ByteArray {

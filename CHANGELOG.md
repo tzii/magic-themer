@@ -2,6 +2,8 @@
 
 ## 0.8.0 (unreleased)
 
+- **Streamed exports up to 120 MiB**: streams new whole-pack exports straight to disk (raising the icon budget from 64 MiB to 120 MiB) and deflates icon entries in memory for faster exports on 8,000+ icon packs.
+- **Edited theme naming & previous customizations**: prompts with an incremented theme name (`Name 2`, `Name 3`, …) when saving edits to an imported theme whose internal title is unchanged (since MagicOS Themes hides duplicate-title copies), and highlights previously customized apps under **Customized** when reopening a theme.
 - **Style unmatched apps like the pack** (experimental, opt-in in **Theme**, needs phone check): parses `<iconback>`, `<iconmask>`, `<iconupon>`, and `<scale>` from `appfilter.xml` and exports HONOR's `icon_mask.png` (alpha-inverted from Android's `DST_OUT` mask), `icon_background_*.png`, and `icon_border.png` so HONOR can style uncovered apps.
 - **Live calendar icon** (experimental, opt-in in **Theme**, needs phone check): reconstructs a clean `dynamic_icons/com.android.calendar/calendar_background.png` and extracts the pack's date text color into `com.hihonor.android.launcher` from the pack's `<calendar>` day drawables.
 - **Translations & Italian UI**: moved app UI text into Android string resources (`values/strings.xml`) and added an Italian translation (`values-it/strings.xml`). Low-level archive/parser diagnostics remain in English.
